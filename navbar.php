@@ -2,7 +2,7 @@
 require_once 'auth.php';
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">Rezervační systém</a>
+        <a class="navbar-brand" href="dashboard.php">Rezervační systém</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>

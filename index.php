@@ -7,6 +7,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $class = $conn->real_escape_string($_POST['class']);
         $description = $conn->real_escape_string($_POST['description']);
         $urgency = $conn->real_escape_string($_POST['urgency']);
+        $user_id = intval($_POST['user_id']);
+        
+        // Uložení problému do databáze
+        $stmt = $conn->prepare("INSERT INTO technical_issues (user_id, class, description, urgency, status) VALUES (?, ?, ?, ?, 'nový')");
+        $stmt->bind_param("isss", $user_id, $class, $description, $urgency);
+        $stmt->execute();
+        
+        // Získání jména uživatele pro email
+        $stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $user_name = $stmt->get_result()->fetch_assoc()['name'];
         
         // Odeslání emailu
         $to = "kry.tuma@gmail.com";
@@ -34,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <p><strong>Naléhavost:</strong> <span class='urgency'>{$urgency}</span></p>
                     <p><strong>Popis problému:</strong></p>
                     <p>{$description}</p>
+                    <p><strong>Nahlásil:</strong> {$user_name}</p>
                 </div>
                 <div class='footer'>
                     <p>Tento email byl automaticky vygenerován systémem pro správu technických problémů.</p>
@@ -47,6 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $headers = "MIME-Version: 1.0" . "\r\n";
         $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
         $headers .= "From: Rezervační systém <noreply@zskamenicka.cz>" . "\r\n";
+        $headers .= "Reply-To: noreply@zskamenicka.cz" . "\r\n";
+        $headers .= "X-Mailer: PHP/" . phpversion();
         
         if (mail($to, $subject, $message, $headers)) {
             $success_message = "Problém byl úspěšně nahlášen";
@@ -75,6 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $login_error = "Neplatné přihlašovací údaje";
     }
 }
+
+// Získání seznamu uživatelů pro výběr
+$users = $conn->query("SELECT id, name FROM users ORDER BY name");
 ?>
 <!DOCTYPE html>
 <html lang="cs">
@@ -222,6 +240,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                         <form method="post">
                             <input type="hidden" name="action" value="report_issue">
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-user me-2"></i>Nahlásil
+                                </label>
+                                <select name="user_id" class="form-select" required>
+                                    <option value="">Vyberte uživatele</option>
+                                    <?php while ($user = $users->fetch_assoc()): ?>
+                                        <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['name']) ?></option>
+                                    <?php endwhile; ?>
+                                </select>
+                            </div>
                             <div class="mb-4">
                                 <label class="form-label">
                                     <i class="fas fa-chalkboard me-2"></i>Třída
