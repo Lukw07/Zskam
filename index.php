@@ -20,6 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $user_name = $stmt->get_result()->fetch_assoc()['name'];
         
+        // SMTP konfigurace
+        ini_set("SMTP", "smtp.forpsi.com");
+        ini_set("smtp_port", "587");
+        ini_set("sendmail_from", "noreply@zskamenicka.cz");
+        
         // Odeslání emailu
         $to = "kry.tuma@gmail.com";
         $subject = "Nový technický problém - " . $class;
@@ -63,10 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $headers .= "Reply-To: noreply@zskamenicka.cz" . "\r\n";
         $headers .= "X-Mailer: PHP/" . phpversion();
         
-        if (mail($to, $subject, $message, $headers)) {
+        // Odeslání emailu s logováním chyb
+        $mail_sent = mail($to, $subject, $message, $headers);
+        if ($mail_sent) {
             $success_message = "Problém byl úspěšně nahlášen";
         } else {
-            $error_message = "Chyba při nahlášení problému";
+            $error_message = "Chyba při nahlášení problému: " . error_get_last()['message'];
         }
     } else {
         $email = $conn->real_escape_string($_POST['email']);
