@@ -52,7 +52,7 @@ Systém pro správu rezervací technického vybavení na základní škole.
 
 ## Autor
 
-Systém byl vytvořen pro ZŠ Kamenná.
+Systém byl vytvořen pro ZŠ Kamenická.
 
 ## Licence
 
