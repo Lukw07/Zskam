@@ -1,4 +1,4 @@
-# Rezervační systém ZŠ Kamenná
+# Rezervační systém ZŠ Kamenická
 
 Systém pro správu rezervací technického vybavení na základní škole.
 
