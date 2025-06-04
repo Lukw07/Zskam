@@ -49,7 +49,6 @@ $users = $conn->query("SELECT * FROM users");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
     <title>Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
@@ -147,5 +146,11 @@ $users = $conn->query("SELECT * FROM users");
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="auto_refresh.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setupAutoRefresh('admin-content', 'admin.php', 60000);
+        });
+    </script>
 </body>
 </html>

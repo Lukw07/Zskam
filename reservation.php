@@ -69,7 +69,6 @@ $edit_reservation = null;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
     <title>Nová rezervace</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
@@ -340,8 +339,14 @@ $edit_reservation = null;
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="auto_refresh.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const availabilityTable = document.getElementById('availability-table');
+            if (availabilityTable) {
+                setupAutoRefresh('availability-table', 'reservation.php', 60000);
+            }
+
             // Inicializace tooltipů
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {

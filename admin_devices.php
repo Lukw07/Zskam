@@ -40,7 +40,6 @@ $devices = $conn->query("SELECT * FROM devices");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
     <title>Správa zařízení</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
@@ -48,7 +47,7 @@ $devices = $conn->query("SELECT * FROM devices");
 <body>
     <?php include 'navbar.php'; ?>
     
-    <div class="container mt-4">
+    <div class="container mt-4" id="devices-content">
         <h2>Správa zařízení</h2>
         
         <div class="mb-4">
@@ -108,5 +107,11 @@ $devices = $conn->query("SELECT * FROM devices");
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="auto_refresh.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setupAutoRefresh('devices-content', 'admin_devices.php', 60000);
+        });
+    </script>
 </body>
 </html> 
