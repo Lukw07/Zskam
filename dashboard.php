@@ -17,6 +17,22 @@ redirect_if_not_logged_in();
     <?php include 'navbar.php'; ?>
 
     <div class="container mt-4">
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?= $_SESSION['success'] ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+        
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?= $_SESSION['error'] ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
         <div class="dashboard-stats">
             <?php
             // Počet aktivních rezervací uživatele
@@ -102,8 +118,12 @@ redirect_if_not_logged_in();
                                 <td><?= htmlspecialchars($row['user_name']) ?></td>
                                 <td>
                                     <?php if (is_admin() || $row['user_id'] == $_SESSION['user_id']): ?>
-                                    <a href="reservation.php?edit=<?= $row['id'] ?>" 
-                                       class="btn btn-sm btn-primary">Upravit</a>
+                                    <form method="post" action="delete_reservation.php" class="d-inline">
+                                        <input type="hidden" name="reservation_id" value="<?= $row['id'] ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Opravdu chcete smazat tuto rezervaci?')">
+                                            <i class="fas fa-trash"></i> Smazat
+                                        </button>
+                                    </form>
                                     <?php endif; ?>
                                 </td>
                             </tr>
