@@ -28,6 +28,9 @@ require_once 'auth.php';
                         <li class="nav-item">
                             <a class="nav-link" href="admin_issues.php">Technické problémy</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="statistics.php">Statistiky</a>
+                        </li>
                     <?php endif; ?>
                     <li class="nav-item">
                         <a class="nav-link" href="logout.php">Odhlásit</a>

@@ -132,6 +132,62 @@ redirect_if_not_logged_in();
                 </div>
             </div>
         </div>
+
+        <!-- Technické problémy -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="card-title">Technické problémy</h2>
+                <?php
+                $query = "SELECT ti.*, u.name as user_name 
+                         FROM technical_issues ti
+                         JOIN users u ON ti.user_id = u.id
+                         WHERE ti.status != 'vyřešeno'
+                         ORDER BY 
+                            CASE ti.urgency
+                                WHEN 'vysoká' THEN 1
+                                WHEN 'střední' THEN 2
+                                ELSE 3
+                            END,
+                            ti.created_at DESC";
+                
+                $issues = $conn->query($query);
+                ?>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Třída</th>
+                                <th>Popis</th>
+                                <th>Naléhavost</th>
+                                <th>Stav</th>
+                                <th>Nahlásil</th>
+                                <th>Datum nahlášení</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while ($issue = $issues->fetch_assoc()): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($issue['class']) ?></td>
+                                <td><?= htmlspecialchars($issue['description']) ?></td>
+                                <td>
+                                    <span class="badge bg-<?= $issue['urgency'] === 'vysoká' ? 'danger' : ($issue['urgency'] === 'střední' ? 'warning' : 'info') ?>">
+                                        <?= $issue['urgency'] ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<?= $issue['status'] === 'nový' ? 'primary' : 'secondary' ?>">
+                                        <?= $issue['status'] ?>
+                                    </span>
+                                </td>
+                                <td><?= htmlspecialchars($issue['user_name']) ?></td>
+                                <td><?= date('d.m.Y H:i', strtotime($issue['created_at'])) ?></td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>

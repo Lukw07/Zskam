@@ -1,6 +1,17 @@
 <?php
 require_once 'db.php';
+require 'PHPMailer/src/Exception.php';
+require 'PHPMailer/src/PHPMailer.php';
+require 'PHPMailer/src/SMTP.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
+
 session_start();
+
+// Načtení konfigurace
+$mail_config = require 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] === 'report_issue') {
@@ -20,60 +31,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $user_name = $stmt->get_result()->fetch_assoc()['name'];
         
-        // SMTP konfigurace
-        ini_set("SMTP", "smtp.forpsi.com");
-        ini_set("smtp_port", "587");
-        ini_set("sendmail_from", "noreply@zskamenicka.cz");
-        
         // Odeslání emailu
-        $to = "kry.tuma@gmail.com";
-        $subject = "Nový technický problém - " . $class;
-        
-        $message = "
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; }
-                .container { padding: 20px; }
-                .header { background: #f8f9fa; padding: 10px; margin-bottom: 20px; }
-                .content { line-height: 1.6; }
-                .urgency { font-weight: bold; }
-                .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
-            </style>
-        </head>
-        <body>
-            <div class='container'>
-                <div class='header'>
-                    <h2>Nový technický problém</h2>
+        $mail = new PHPMailer(true);
+
+        try {
+            // Nastavení serveru
+            $mail->isSMTP();
+            $mail->Host = $mail_config['smtp']['host'];
+            $mail->SMTPAuth = true;
+            $mail->Username = $mail_config['smtp']['username'];
+            $mail->Password = $mail_config['smtp']['password'];
+            $mail->SMTPSecure = $mail_config['smtp']['encryption'];
+            $mail->Port = $mail_config['smtp']['port'];
+            $mail->CharSet = $mail_config['smtp']['charset'];
+
+            // Příjemci
+            $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
+            $mail->addAddress($mail_config['recipients']['admin']);
+
+            // Obsah
+            $mail->isHTML(true);
+            $mail->Subject = "Nový technický problém - " . $class;
+            
+            $message = "
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; }
+                    .container { padding: 20px; }
+                    .header { background: #f8f9fa; padding: 10px; margin-bottom: 20px; }
+                    .content { line-height: 1.6; }
+                    .urgency { font-weight: bold; }
+                    .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h2>Nový technický problém</h2>
+                    </div>
+                    <div class='content'>
+                        <p><strong>Třída:</strong> {$class}</p>
+                        <p><strong>Naléhavost:</strong> <span class='urgency'>{$urgency}</span></p>
+                        <p><strong>Popis problému:</strong></p>
+                        <p>{$description}</p>
+                        <p><strong>Nahlásil:</strong> {$user_name}</p>
+                    </div>
+                    <div class='footer'>
+                        <p>Tento email byl automaticky vygenerován systémem pro správu technických problémů.</p>
+                    </div>
                 </div>
-                <div class='content'>
-                    <p><strong>Třída:</strong> {$class}</p>
-                    <p><strong>Naléhavost:</strong> <span class='urgency'>{$urgency}</span></p>
-                    <p><strong>Popis problému:</strong></p>
-                    <p>{$description}</p>
-                    <p><strong>Nahlásil:</strong> {$user_name}</p>
-                </div>
-                <div class='footer'>
-                    <p>Tento email byl automaticky vygenerován systémem pro správu technických problémů.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        ";
-        
-        // Hlavičky pro HTML email
-        $headers = "MIME-Version: 1.0" . "\r\n";
-        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-        $headers .= "From: Rezervační systém <noreply@zskamenicka.cz>" . "\r\n";
-        $headers .= "Reply-To: noreply@zskamenicka.cz" . "\r\n";
-        $headers .= "X-Mailer: PHP/" . phpversion();
-        
-        // Odeslání emailu s logováním chyb
-        $mail_sent = mail($to, $subject, $message, $headers);
-        if ($mail_sent) {
+            </body>
+            </html>
+            ";
+            
+            $mail->Body = $message;
+            $mail->AltBody = strip_tags($message);
+
+            $mail->send();
             $success_message = "Problém byl úspěšně nahlášen";
-        } else {
-            $error_message = "Chyba při nahlášení problému: " . error_get_last()['message'];
+        } catch (Exception $e) {
+            $error_message = "Chyba při nahlášení problému: {$mail->ErrorInfo}";
         }
     } else {
         $email = $conn->real_escape_string($_POST['email']);
