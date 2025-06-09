@@ -31,7 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Odeslání emailu
         $mail = new PHPMailer(true);
-
         try {
             // Nastavení serveru
             $mail->isSMTP();
@@ -42,55 +41,262 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->SMTPSecure = $mail_config['smtp']['encryption'];
             $mail->Port = $mail_config['smtp']['port'];
             $mail->CharSet = $mail_config['smtp']['charset'];
-
+        
             // Příjemci
             $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
             $mail->addAddress($mail_config['recipients']['admin']);
-
+        
             // Obsah
             $mail->isHTML(true);
-            $mail->Subject = "Nový technický problém - " . $class;
+            $mail->Subject = "🔧 Technický problém - {$class} [{$urgency}]";
+            
+            // Určení barvy podle naléhavosti
+            $urgency_colors = [
+                'Nízká' => '#28a745',
+                'Střední' => '#ffc107', 
+                'Vysoká' => '#fd7e14',
+                'Kritická' => '#dc3545'
+            ];
+            $urgency_color = $urgency_colors[$urgency] ?? '#6c757d';
+            
+            $current_time = date('d.m.Y H:i:s');
             
             $message = "
-            <html>
+            <!DOCTYPE html>
+            <html lang='cs'>
             <head>
+                <meta charset='UTF-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <title>Technický problém</title>
                 <style>
-                    body { font-family: Arial, sans-serif; }
-                    .container { padding: 20px; }
-                    .header { background: #f8f9fa; padding: 10px; margin-bottom: 20px; }
-                    .content { line-height: 1.6; }
-                    .urgency { font-weight: bold; }
-                    .footer { margin-top: 20px; font-size: 0.9em; color: #666; }
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    
+                    body {
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        background-color: #f8f9fa;
+                    }
+                    
+                    .email-container {
+                        max-width: 600px;
+                        margin: 0 auto;
+                        background: #ffffff;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    
+                    .header {
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 30px 25px;
+                        text-align: center;
+                    }
+                    
+                    .header h1 {
+                        font-size: 24px;
+                        font-weight: 600;
+                        margin-bottom: 5px;
+                    }
+                    
+                    .header p {
+                        opacity: 0.9;
+                        font-size: 14px;
+                    }
+                    
+                    .content {
+                        padding: 30px 25px;
+                    }
+                    
+                    .problem-card {
+                        background: #f8f9fa;
+                        border-left: 4px solid {$urgency_color};
+                        border-radius: 6px;
+                        padding: 20px;
+                        margin-bottom: 25px;
+                    }
+                    
+                    .urgency-badge {
+                        display: inline-block;
+                        background: {$urgency_color};
+                        color: white;
+                        padding: 6px 12px;
+                        border-radius: 20px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 15px;
+                    }
+                    
+                    .info-row {
+                        display: flex;
+                        margin-bottom: 15px;
+                        align-items: flex-start;
+                    }
+                    
+                    .info-label {
+                        font-weight: 600;
+                        color: #495057;
+                        min-width: 100px;
+                        margin-right: 15px;
+                    }
+                    
+                    .info-value {
+                        color: #333;
+                        flex: 1;
+                    }
+                    
+                    .description-box {
+                        background: white;
+                        border: 1px solid #e9ecef;
+                        border-radius: 6px;
+                        padding: 15px;
+                        margin-top: 10px;
+                        font-style: italic;
+                        line-height: 1.7;
+                    }
+                    
+                    .divider {
+                        height: 1px;
+                        background: linear-gradient(to right, transparent, #dee2e6, transparent);
+                        margin: 25px 0;
+                    }
+                    
+                    .reporter-info {
+                        background: #e3f2fd;
+                        padding: 15px;
+                        border-radius: 6px;
+                        border-left: 3px solid #2196f3;
+                    }
+                    
+                    .footer {
+                        background: #f8f9fa;
+                        padding: 20px 25px;
+                        text-align: center;
+                        border-top: 1px solid #e9ecef;
+                    }
+                    
+                    .footer p {
+                        color: #6c757d;
+                        font-size: 12px;
+                        margin-bottom: 5px;
+                    }
+                    
+                    .footer .timestamp {
+                        color: #495057;
+                        font-weight: 500;
+                    }
+                    
+                    .icon {
+                        display: inline-block;
+                        margin-right: 8px;
+                    }
+                    
+                    @media (max-width: 600px) {
+                        .email-container {
+                            margin: 10px;
+                            border-radius: 0;
+                        }
+                        
+                        .info-row {
+                            flex-direction: column;
+                        }
+                        
+                        .info-label {
+                            margin-bottom: 5px;
+                        }
+                    }
                 </style>
             </head>
             <body>
-                <div class='container'>
+                <div class='email-container'>
                     <div class='header'>
-                        <h2>Nový technický problém</h2>
+                        <h1>🔧 Technický Problém</h1>
+                        <p>Systém pro správu technických incidentů</p>
                     </div>
+                    
                     <div class='content'>
-                        <p><strong>Třída:</strong> {$class}</p>
-                        <p><strong>Naléhavost:</strong> <span class='urgency'>{$urgency}</span></p>
-                        <p><strong>Popis problému:</strong></p>
-                        <p>{$description}</p>
-                        <p><strong>Nahlásil:</strong> {$user_name}</p>
+                        <div class='problem-card'>
+                            <div class='urgency-badge'>{$urgency}</div>
+                            
+                            <div class='info-row'>
+                                <div class='info-label'>
+                                    <span class='icon'>📋</span>Třída:
+                                </div>
+                                <div class='info-value'><strong>{$class}</strong></div>
+                            </div>
+                            
+                            <div class='info-row'>
+                                <div class='info-label'>
+                                    <span class='icon'>📝</span>Popis:
+                                </div>
+                                <div class='info-value'>
+                                    <div class='description-box'>
+                                        {$description}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class='divider'></div>
+                        
+                        <div class='reporter-info'>
+                            <div class='info-row' style='margin-bottom: 0;'>
+                                <div class='info-label'>
+                                    <span class='icon'>👤</span>Nahlásil:
+                                </div>
+                                <div class='info-value'><strong>{$user_name}</strong></div>
+                            </div>
+                        </div>
                     </div>
+                    
                     <div class='footer'>
-                        <p>Tento email byl automaticky vygenerován systémem pro správu technických problémů.</p>
+                        <p>Tento email byl automaticky vygenerován</p>
+                        <p class='timestamp'>{$current_time}</p>
+                        <p style='margin-top: 10px; font-size: 11px;'>
+                            Systém pro správu technických problémů v1.2
+                        </p>
                     </div>
                 </div>
             </body>
             </html>
             ";
-            
+        
             $mail->Body = $message;
-            $mail->AltBody = strip_tags($message);
-
+            
+            // Alternativní textová verze
+            $alt_body = "
+        TECHNICKÝ PROBLÉM [{$urgency}]
+        =====================================
+        
+        Třída: {$class}
+        Naléhavost: {$urgency}
+        Čas nahlášení: {$current_time}
+        
+        Popis problému:
+        {$description}
+        
+        Nahlásil: {$user_name}
+        
+        =====================================
+        Tento email byl automaticky vygenerován systémem pro správu technických problémů.
+            ";
+            
+            $mail->AltBody = $alt_body;
+        
             $mail->send();
-            $success_message = "Problém byl úspěšně nahlášen";
+            $success_message = "✅ Problém byl úspěšně nahlášen a příslušný tým byl informován";
+            
         } catch (Exception $e) {
-            $error_message = "Chyba při nahlášení problému: {$mail->ErrorInfo}";
+            $error_message = "❌ Chyba při nahlášení problému: {$mail->ErrorInfo}";
         }
+        
     } else {
         $email = $conn->real_escape_string($_POST['email']);
         $password = $_POST['password'];
