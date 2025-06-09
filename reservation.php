@@ -28,34 +28,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $day_of_week = $date_obj->format('N');
         $max_date = date('Y-m-d', strtotime('+7 days'));
 
-        // Kontrola dostupnosti
-        $stmt = $conn->prepare("SELECT 
-            (SELECT total_quantity FROM devices WHERE id = ?) - 
-            COALESCE(SUM(quantity), 0) AS available
-            FROM reservations 
-            WHERE device_id = ? AND date = ? AND hour = ?");
-        $stmt->bind_param("iisi", $device_id, $device_id, $date, $hour);
-        $stmt->execute();
-        $available = $stmt->get_result()->fetch_assoc()['available'];
-
         if ($day_of_week >= 6) {
             $error = "Nelze rezervovat o víkendu";
         } elseif ($date > $max_date) {
             $error = "Maximálně 7 dní dopředu";
         } elseif ($quantity <= 0) {
             $error = "Neplatný počet kusů";
-        } elseif ($available < $quantity) {
-            $error = "Nedostatečný počet zařízení (dostupných: $available)";
         } else {
-            // Vytvoření nové rezervace
-            $stmt = $conn->prepare("INSERT INTO reservations 
-                (user_id, device_id, date, hour, quantity)
-                VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
-            if ($stmt->execute()) {
-                $success = "Rezervace úspěšně vytvořena";
+            // Kontrola dostupnosti
+            $stmt = $conn->prepare("SELECT 
+                (SELECT total_quantity FROM devices WHERE id = ?) - 
+                COALESCE(SUM(quantity), 0) AS available
+                FROM reservations 
+                WHERE device_id = ? AND date = ? AND hour = ?");
+            $stmt->bind_param("iisi", $device_id, $device_id, $date, $hour);
+            $stmt->execute();
+            $available = $stmt->get_result()->fetch_assoc()['available'];
+
+            if ($available < $quantity) {
+                $error = "Nedostatečný počet zařízení (dostupných: $available)";
             } else {
-                $error = "Chyba při vytváření rezervace";
+                // Vytvoření nové rezervace
+                $stmt = $conn->prepare("INSERT INTO reservations 
+                    (user_id, device_id, date, hour, quantity)
+                    VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
+                if ($stmt->execute()) {
+                    $success = "Rezervace úspěšně vytvořena";
+                } else {
+                    $error = "Chyba při vytváření rezervace";
+                }
             }
         }
     }
@@ -85,9 +87,116 @@ $edit_reservation = null;
             cursor: pointer;
             padding: 0.5rem;
         }
+        
+        /* Responzivní styly */
         @media (max-width: 768px) {
-            input[type="date"] {
-                font-size: 16px; /* Zabrání zoomování na iOS */
+            .container {
+                padding: 10px;
+            }
+            
+            .card {
+                margin-bottom: 1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .table {
+                font-size: 0.9rem;
+            }
+            
+            .table td, .table th {
+                padding: 0.5rem;
+            }
+            
+            .progress {
+                height: 15px !important;
+                margin-right: 0.5rem !important;
+            }
+            
+            .badge {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.6rem;
+            }
+            
+            .btn-sm {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.8rem;
+            }
+            
+            /* Úprava modálního okna */
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            
+            .modal-body {
+                padding: 1rem;
+            }
+            
+            .modal-footer {
+                padding: 0.75rem;
+            }
+            
+            /* Úprava formuláře */
+            .form-label {
+                font-size: 0.9rem;
+                margin-bottom: 0.3rem;
+            }
+            
+            .form-control, .form-select {
+                font-size: 0.9rem;
+                padding: 0.4rem 0.75rem;
+            }
+            
+            /* Úprava tlačítek */
+            .btn {
+                padding: 0.4rem 0.75rem;
+                font-size: 0.9rem;
+            }
+            
+            /* Úprava nadpisů */
+            h2 {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+            
+            h3 {
+                font-size: 1.2rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            /* Úprava tabulky dostupnosti */
+            .d-flex.align-items-center {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .progress {
+                min-width: 100px;
+            }
+            
+            /* Úprava tooltipů */
+            .tooltip {
+                font-size: 0.8rem;
+            }
+            
+            /* Úprava input group */
+            .input-group-text {
+                font-size: 0.9rem;
+                padding: 0.4rem 0.75rem;
+            }
+            
+            /* Úprava alertů */
+            .alert {
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+                font-size: 0.9rem;
+            }
+            
+            /* Úprava malého textu */
+            small {
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -153,7 +262,8 @@ $edit_reservation = null;
                 
                 while ($hour = $hours->fetch_assoc()) {
                     $hour_start = new DateTime($selected_date . ' ' . $hour['start_time']);
-                    if (!$is_today || $hour_start > $current_time) {
+                    $hour_end = new DateTime($selected_date . ' ' . $hour['end_time']);
+                    if (!$is_today || $hour_end < $current_time) {
                         $all_hours_past = false;
                         break;
                     }
@@ -180,10 +290,11 @@ $edit_reservation = null;
                             // Reset ukazatele pro opětovné použití
                             $hours->data_seek(0);
                             while ($hour = $hours->fetch_assoc()): 
-                                // Kontrola, zda hodina již proběhla
+                                // Kontrola, zda hodina již proběhla nebo právě probíhá
                                 $hour_start = new DateTime($selected_date . ' ' . $hour['start_time']);
+                                $hour_end = new DateTime($selected_date . ' ' . $hour['end_time']);
                                 $is_past = ($reservation_date < $current_time->format('Y-m-d')) || 
-                                          ($is_today && $hour_start < $current_time);
+                                          ($is_today && $hour_start <= $current_time);
 
                                 // Kontrola dostupnosti pro každou hodinu
                                 $stmt = $conn->prepare("SELECT 
@@ -229,23 +340,23 @@ $edit_reservation = null;
                                 }
                             ?>
                             <tr>
-                                <td><?= $hour['hour_number'] ?>. hodina</td>
-                                <td><?= date('H:i', strtotime($hour['start_time'])) ?> - <?= date('H:i', strtotime($hour['end_time'])) ?></td>
+                                <td class="align-middle"><?= $hour['hour_number'] ?>. hodina</td>
+                                <td class="align-middle"><?= date('H:i', strtotime($hour['start_time'])) ?> - <?= date('H:i', strtotime($hour['end_time'])) ?></td>
                                 <td>
-                                    <div class="d-flex align-items-center">
+                                    <div class="d-flex align-items-center flex-wrap">
                                         <?php if ($is_past): ?>
-                                            <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                                            <div class="progress flex-grow-1" style="height: 20px;">
                                                 <div class="progress-bar bg-secondary"
                                                      role="progressbar"
                                                      style="width: 100%"
                                                      data-bs-toggle="tooltip"
                                                      data-bs-html="true"
-                                                     title="Tato hodina již proběhla">
+                                                     title="Tato hodina již proběhla nebo právě probíhá">
                                                      Proběhlo
                                                 </div>
                                             </div>
                                         <?php elseif ($available == 0): ?>
-                                            <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                                            <div class="progress flex-grow-1" style="height: 20px;">
                                                 <div class="progress-bar bg-danger"
                                                      role="progressbar"
                                                      style="width: 100%"
@@ -256,7 +367,7 @@ $edit_reservation = null;
                                                 </div>
                                             </div>
                                         <?php else: ?>
-                                            <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                                            <div class="progress flex-grow-1" style="height: 20px;">
                                                 <div class="progress-bar bg-<?= $color_class ?>"
                                                      role="progressbar"
                                                      style="width: <?= $percentage ?>%"
@@ -272,7 +383,7 @@ $edit_reservation = null;
                                         </span>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="align-middle">
                                     <?php if ($is_past): ?>
                                         <button type="button" class="btn btn-secondary btn-sm" disabled>Proběhlo</button>
                                     <?php elseif ($available > 0): ?>
@@ -286,7 +397,7 @@ $edit_reservation = null;
                                             Rezervovat
                                         </button>
                                     <?php else: ?>
-                                    <button type="button" class="btn btn-secondary btn-sm" disabled>Nedostupné</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" disabled>Nedostupné</button>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -316,12 +427,12 @@ $edit_reservation = null;
                         <div class="mb-3">
                             <p class="mb-2"><strong>Datum:</strong> <span id="modalDate"></span></p>
                             <p class="mb-2"><strong>Čas:</strong> <span id="modalTime"></span></p>
-                            <p class="mb-2"><strong>Zařízení:</strong> <?= htmlspecialchars($selected_device ? '' : '') ?></p>
+                            <p class="mb-2"><strong>Zařízení:</strong> <span id="modalDevice"></span></p>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Počet kusů:</label>
                             <div class="input-group">
-                                <input type="number" name="quantity" id="quantityInput" class="form-control" min="1" required value="1">
+                                <input type="number" name="quantity" id="quantityInput" class="form-control" min="1" required value="1" inputmode="numeric" pattern="[0-9]*">
                                 <span class="input-group-text">ks</span>
                             </div>
                             <small class="text-muted">Dostupných: <span id="modalAvailable"></span> kusů</small>
@@ -366,11 +477,13 @@ $edit_reservation = null;
                 const available = parseInt(button.getAttribute('data-available'));
                 const date = button.getAttribute('data-date');
                 const time = button.getAttribute('data-time');
+                const deviceName = document.querySelector('#deviceSelect option:checked').textContent.split(' (')[0];
 
                 document.getElementById('modalHour').value = hour;
                 document.getElementById('modalAvailable').textContent = available;
                 document.getElementById('modalDate').textContent = new Date(date).toLocaleDateString('cs-CZ');
                 document.getElementById('modalTime').textContent = time;
+                document.getElementById('modalDevice').textContent = deviceName;
                 quantityInput.max = available;
                 quantityInput.value = 1;
                 maxAvailable = available;

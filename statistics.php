@@ -13,6 +13,80 @@ if (!is_admin()) die("Přístup odepřen");
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Responzivní styly */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .card {
+                margin-bottom: 1rem;
+            }
+
+            .card-body {
+                padding: 1rem;
+            }
+
+            /* Úprava nadpisů */
+            h2 {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+                margin-bottom: 0.75rem;
+            }
+
+            /* Úprava statistik */
+            .stat-card {
+                padding: 1rem;
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+
+            .stat-card h4 {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .stat-card p {
+                font-size: 0.9rem;
+                margin-bottom: 0;
+            }
+
+            /* Úprava grafů */
+            canvas {
+                max-height: 250px;
+            }
+
+            /* Úprava řádků */
+            .row {
+                margin-bottom: 0.5rem;
+            }
+
+            .col-md-6 {
+                margin-bottom: 1rem;
+            }
+
+            /* Úprava detailních statistik */
+            .col-md-3 {
+                margin-bottom: 1rem;
+            }
+
+            /* Úprava nadpisů grafů */
+            .chart-title {
+                font-size: 1rem;
+                margin-bottom: 0.5rem;
+            }
+
+            /* Úprava legendy */
+            .chart-legend {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <?php include 'navbar.php'; ?>

@@ -759,14 +759,101 @@ $users = $conn->query("SELECT * FROM users");
     <link href="styles.css" rel="stylesheet">
     <style>
         @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .card {
+                margin-bottom: 1rem;
+            }
+
+            .card-body {
+                padding: 1rem;
+            }
+
+            /* Úprava formuláře pro nového uživatele */
+            .row.g-3 {
+                margin-bottom: 0.5rem;
+            }
+
+            .col-md-4, .col-md-2 {
+                margin-bottom: 0.5rem;
+            }
+
+            /* Úprava tabulky */
             .table-responsive {
+                margin: 0 -10px;
+                padding: 0 10px;
+                width: calc(100% + 20px);
+            }
+
+            .table {
                 font-size: 0.9rem;
             }
-            .btn-sm {
-                padding: 0.2rem 0.4rem;
-                font-size: 0.8rem;
+
+            .table td, .table th {
+                padding: 0.5rem;
+                white-space: nowrap;
             }
-            .form-control, .form-select {
+
+            /* Úprava formulářových prvků v tabulce */
+            .form-control-sm, .form-select-sm {
+                font-size: 0.9rem;
+                padding: 0.3rem 0.5rem;
+                margin-bottom: 0.3rem;
+            }
+
+            /* Úprava tlačítek */
+            .btn-sm {
+                padding: 0.3rem 0.5rem;
+                font-size: 0.9rem;
+                margin-bottom: 0.3rem;
+                display: block;
+                width: 100%;
+            }
+
+            /* Úprava nadpisů */
+            h2 {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+
+            h4 {
+                font-size: 1.2rem;
+                margin-bottom: 0.75rem;
+            }
+
+            /* Úprava alertů */
+            .alert {
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+                font-size: 0.9rem;
+            }
+
+            /* Úprava input group */
+            .input-group-text {
+                font-size: 0.9rem;
+                padding: 0.3rem 0.5rem;
+            }
+
+            /* Úprava form-group */
+            .form-group {
+                margin-bottom: 0.5rem;
+            }
+
+            /* Úprava tlačítek v tabulce */
+            .d-inline {
+                display: block !important;
+                margin-top: 0.5rem;
+            }
+
+            /* Úprava buněk v tabulce */
+            td {
+                vertical-align: middle !important;
+            }
+
+            /* Úprava formuláře v tabulce */
+            form {
                 margin-bottom: 0.5rem;
             }
         }

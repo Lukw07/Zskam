@@ -537,6 +537,79 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Responzivní styly */
+        @media (max-width: 768px) {
+            .login-container {
+                margin: 1rem auto;
+                padding: 0 0.5rem;
+            }
+
+            .card {
+                margin-bottom: 1rem;
+            }
+
+            .card-body {
+                padding: 1rem;
+            }
+
+            .card-title {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+
+            .form-control, .form-select {
+                font-size: 16px; /* Zabrání zoomování na iOS */
+                padding: 0.6rem 0.8rem;
+            }
+
+            .form-label {
+                font-size: 0.9rem;
+                margin-bottom: 0.3rem;
+            }
+
+            .btn {
+                padding: 0.6rem;
+                font-size: 0.9rem;
+            }
+
+            .alert {
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+                font-size: 0.9rem;
+            }
+
+            .input-group-text {
+                font-size: 0.9rem;
+                padding: 0.6rem 0.8rem;
+            }
+
+            .badge {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.6rem;
+            }
+
+            /* Úprava ikon */
+            .fas {
+                font-size: 1.2rem;
+            }
+
+            /* Úprava nadpisů */
+            h2 {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+
+            /* Úprava textarea */
+            textarea.form-control {
+                min-height: 100px;
+            }
+
+            /* Úprava selectu pro uživatele */
+            select[name="user_id"] {
+                font-size: 16px; /* Zabrání zoomování na iOS */
+            }
+        }
     </style>
 </head>
 <body>

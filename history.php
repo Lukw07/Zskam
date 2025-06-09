@@ -23,9 +23,15 @@ redirect_if_not_logged_in();
                  FROM reservations r
                  JOIN devices d ON r.device_id = d.id
                  JOIN users u ON r.user_id = u.id
-                 WHERE r.date < CURDATE() OR 
-                 (r.date = CURDATE() AND (SELECT end_time FROM hours WHERE hour_number = r.hour) < CURTIME())
-                 ORDER BY r.date DESC, r.hour DESC";
+                 WHERE (r.date < CURDATE() OR 
+                 (r.date = CURDATE() AND (SELECT end_time FROM hours WHERE hour_number = r.hour) < CURTIME()))";
+        
+        // Přidání podmínky pro běžné uživatele
+        if (!is_admin()) {
+            $query .= " AND r.user_id = " . $_SESSION['user_id'];
+        }
+        
+        $query .= " ORDER BY r.date DESC, r.hour DESC";
 
         $reservations = $conn->query($query);
         ?>
