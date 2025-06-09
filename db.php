@@ -8,4 +8,5 @@ $db   = getenv('DB_NAME'); // Or DB_DATABASE, be consistent
 // Check if environment variables are set (optional but good for debugging)
 if (empty($host) || empty($user) || empty($pass) || empty($db)) {
     die("Database connection details are not fully configured. Please set DB_HOST, DB_USER, DB_PASSWORD, and DB_NAME environment variables.");
+}
 ?>
