@@ -48,18 +48,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
             // Obsah
             $mail->isHTML(true);
-            $mail->Subject = "🔧 Technický problém - {$class} [{$urgency}]";
+            $mail->Subject = "⚠️ IT Incident - {$class} | {$urgency}";
             
-            // Určení barvy podle naléhavosti
-            $urgency_colors = [
-                'Nízká' => '#28a745',
-                'Střední' => '#ffc107', 
-                'Vysoká' => '#fd7e14',
-                'Kritická' => '#dc3545'
+            // Nastavení barev a ikon podle naléhavosti
+            $urgency_settings = [
+                'Nízká' => [
+                    'color' => '#10b981',
+                    'bg_color' => '#ecfdf5',
+                    'border_color' => '#10b981',
+                    'icon' => '🟢',
+                    'status' => 'LOW'
+                ],
+                'Střední' => [
+                    'color' => '#f59e0b',
+                    'bg_color' => '#fffbeb',
+                    'border_color' => '#f59e0b',
+                    'icon' => '🟡',
+                    'status' => 'MEDIUM'
+                ],
+                'Vysoká' => [
+                    'color' => '#f97316',
+                    'bg_color' => '#fff7ed',
+                    'border_color' => '#f97316',
+                    'icon' => '🟠',
+                    'status' => 'HIGH'
+                ],
+                'Kritická' => [
+                    'color' => '#ef4444',
+                    'bg_color' => '#fef2f2',
+                    'border_color' => '#ef4444',
+                    'icon' => '🔴',
+                    'status' => 'CRITICAL'
+                ]
             ];
-            $urgency_color = $urgency_colors[$urgency] ?? '#6c757d';
             
+            $current_urgency = $urgency_settings[$urgency] ?? $urgency_settings['Nízká'];
             $current_time = date('d.m.Y H:i:s');
+            $incident_id = 'INC-' . date('Ymd') . '-' . strtoupper(substr(md5($current_time), 0, 6));
             
             $message = "
             <!DOCTYPE html>
@@ -67,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <head>
                 <meta charset='UTF-8'>
                 <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                <title>Technický problém</title>
+                <title>IT Support Incident</title>
                 <style>
                     * {
                         margin: 0;
@@ -78,190 +103,286 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     body {
                         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                         line-height: 1.6;
-                        color: #333;
-                        background-color: #f8f9fa;
+                        color: #1f2937;
+                        background-color: #f8fafc;
                     }
                     
                     .email-container {
                         max-width: 600px;
-                        margin: 0 auto;
+                        margin: 20px auto;
                         background: #ffffff;
                         border-radius: 8px;
                         overflow: hidden;
-                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                        border: 1px solid #e5e7eb;
                     }
                     
+                    /* Header s logem */
                     .header {
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
                         color: white;
-                        padding: 30px 25px;
+                        padding: 24px;
                         text-align: center;
                     }
                     
-                    .header h1 {
-                        font-size: 24px;
+                    .logo-section {
+                        width: 100%;
+                        margin-bottom: 16px;
+                    }
+                    
+                    .logo {
+                        width: 100%;
+                        max-width: 300px;
+                        height: auto;
+                        margin: 0 auto;
+                        display: block;
+                    }
+                    
+                    .company-info {
+                        margin-top: 16px;
+                    }
+                    
+                    .company-info h1 {
+                        font-size: 20px;
                         font-weight: 600;
-                        margin-bottom: 5px;
+                        margin-bottom: 4px;
                     }
                     
-                    .header p {
-                        opacity: 0.9;
+                    .company-info p {
                         font-size: 14px;
+                        opacity: 0.9;
                     }
                     
-                    .content {
-                        padding: 30px 25px;
+                    /* Urgency Banner */
+                    .urgency-banner {
+                        background: #ffffff;
+                        border-left: 4px solid #2563eb;
+                        padding: 16px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 16px;
                     }
                     
-                    .problem-card {
-                        background: #f8f9fa;
-                        border-left: 4px solid {$urgency_color};
-                        border-radius: 6px;
-                        padding: 20px;
-                        margin-bottom: 25px;
+                    .urgency-info {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
                     }
                     
                     .urgency-badge {
-                        display: inline-block;
-                        background: {$urgency_color};
-                        color: white;
-                        padding: 6px 12px;
-                        border-radius: 20px;
-                        font-size: 12px;
-                        font-weight: 600;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        margin-bottom: 15px;
+                        display: none;
                     }
                     
-                    .info-row {
-                        display: flex;
-                        margin-bottom: 15px;
-                        align-items: flex-start;
+                    .urgency-text {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #111827;
+                    }
+                    
+                    .incident-id {
+                        background: #1e293b;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        font-family: 'Courier New', monospace;
+                        font-size: 14px;
+                        font-weight: 600;
+                        display: inline-block;
+                        margin-top: 8px;
+                    }
+                    
+                    /* Content */
+                    .content {
+                        padding: 24px;
+                    }
+                    
+                    .section {
+                        margin-bottom: 24px;
+                    }
+                    
+                    .section-title {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #1f2937;
+                        margin-bottom: 16px;
+                        padding-bottom: 8px;
+                        border-bottom: 1px solid #e5e7eb;
+                    }
+                    
+                    /* Info Grid */
+                    .info-grid {
+                        display: grid;
+                        grid-template-columns: 1fr;
+                        gap: 16px;
+                        margin-bottom: 24px;
+                    }
+                    
+                    .info-item {
+                        background: #f8fafc;
+                        padding: 16px;
+                        border-radius: 6px;
+                        border-left: 3px solid #3b82f6;
                     }
                     
                     .info-label {
+                        font-size: 13px;
                         font-weight: 600;
-                        color: #495057;
-                        min-width: 100px;
-                        margin-right: 15px;
+                        color: #6b7280;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        margin-bottom: 4px;
                     }
                     
                     .info-value {
-                        color: #333;
-                        flex: 1;
+                        font-size: 15px;
+                        font-weight: 600;
+                        color: #1f2937;
                     }
                     
+                    /* Description Box */
                     .description-box {
-                        background: white;
-                        border: 1px solid #e9ecef;
+                        background: #ffffff;
+                        border: 1px solid #e5e7eb;
                         border-radius: 6px;
-                        padding: 15px;
-                        margin-top: 10px;
-                        font-style: italic;
-                        line-height: 1.7;
+                        padding: 16px;
+                        position: relative;
                     }
                     
-                    .divider {
-                        height: 1px;
-                        background: linear-gradient(to right, transparent, #dee2e6, transparent);
-                        margin: 25px 0;
+                    .description-box::before {
+                        content: 'Popis problému';
+                        position: absolute;
+                        top: -10px;
+                        left: 16px;
+                        background: white;
+                        padding: 0 8px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #6b7280;
+                        text-transform: uppercase;
+                    }
+                    
+                    .description-content {
+                        font-size: 14px;
+                        line-height: 1.6;
+                        color: #374151;
+                    }
+                    
+                    /* Reporter Info */
+                    .reporter-section {
+                        background: #f8fafc;
+                        border-radius: 6px;
+                        padding: 16px;
+                        border: 1px solid #e5e7eb;
                     }
                     
                     .reporter-info {
-                        background: #e3f2fd;
-                        padding: 15px;
-                        border-radius: 6px;
-                        border-left: 3px solid #2196f3;
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
                     }
                     
+                    .reporter-details h3 {
+                        font-size: 15px;
+                        font-weight: 600;
+                        color: #1f2937;
+                        margin-bottom: 4px;
+                    }
+                    
+                    .reporter-details p {
+                        font-size: 14px;
+                        color: #6b7280;
+                    }
+                    
+                    /* Footer */
                     .footer {
-                        background: #f8f9fa;
-                        padding: 20px 25px;
+                        background: #1f2937;
+                        color: #9ca3af;
+                        padding: 24px;
                         text-align: center;
-                        border-top: 1px solid #e9ecef;
                     }
                     
-                    .footer p {
-                        color: #6c757d;
-                        font-size: 12px;
-                        margin-bottom: 5px;
+                    .footer-content {
+                        font-size: 13px;
+                        line-height: 1.5;
                     }
                     
-                    .footer .timestamp {
-                        color: #495057;
-                        font-weight: 500;
-                    }
-                    
-                    .icon {
-                        display: inline-block;
-                        margin-right: 8px;
-                    }
-                    
-                    @media (max-width: 600px) {
-                        .email-container {
-                            margin: 10px;
-                            border-radius: 0;
-                        }
-                        
-                        .info-row {
-                            flex-direction: column;
-                        }
-                        
-                        .info-label {
-                            margin-bottom: 5px;
-                        }
+                    .footer-title {
+                        color: white;
+                        font-weight: 600;
+                        margin-bottom: 8px;
+                        font-size: 15px;
                     }
                 </style>
             </head>
             <body>
                 <div class='email-container'>
+                    <!-- Header -->
                     <div class='header'>
-                        <h1>🔧 Technický Problém</h1>
-                        <p>Systém pro správu technických incidentů</p>
+                        <div class='logo-section'>
+                            <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
+                            <div class='company-info'>
+                                <h1>IT Support System</h1>
+                                <p>Incident Management Platform</p>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class='content'>
-                        <div class='problem-card'>
+                    <!-- Urgency Banner -->
+                    <div class='urgency-banner'>
+                        <div class='urgency-info'>
                             <div class='urgency-badge'>{$urgency}</div>
+                            <div class='urgency-text'>Naléhavost: {$urgency}</div>
+                        </div>
+                        <div class='incident-id'>{$incident_id}</div>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class='content'>
+                        <!-- Incident Details -->
+                        <div class='section'>
+                            <h2 class='section-title'>Detail incidentu</h2>
                             
-                            <div class='info-row'>
-                                <div class='info-label'>
-                                    <span class='icon'>📋</span>Třída:
+                            <div class='info-grid'>
+                                <div class='info-item'>
+                                    <div class='info-label'>Třída</div>
+                                    <div class='info-value'>{$class}</div>
                                 </div>
-                                <div class='info-value'><strong>{$class}</strong></div>
+                                <div class='info-item'>
+                                    <div class='info-label'>Priorita</div>
+                                    <div class='info-value' style='color: {$current_urgency['color']}'>{$urgency}</div>
+                                </div>
                             </div>
                             
-                            <div class='info-row'>
-                                <div class='info-label'>
-                                    <span class='icon'>📝</span>Popis:
+                            <div class='description-box'>
+                                <div class='description-content'>
+                                    {$description}
                                 </div>
-                                <div class='info-value'>
-                                    <div class='description-box'>
-                                        {$description}
+                            </div>
+                        </div>
+                        
+                        <!-- Reporter Info -->
+                        <div class='section'>
+                            <h2 class='section-title'>Nahlásil uživatel</h2>
+                            <div class='reporter-section'>
+                                <div class='reporter-info'>
+                                    <div class='reporter-details'>
+                                        <h3>{$user_name}</h3>
+                                        <p>Nahlášeno: {$current_time}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class='divider'></div>
-                        
-                        <div class='reporter-info'>
-                            <div class='info-row' style='margin-bottom: 0;'>
-                                <div class='info-label'>
-                                    <span class='icon'>👤</span>Nahlásil:
-                                </div>
-                                <div class='info-value'><strong>{$user_name}</strong></div>
-                            </div>
-                        </div>
                     </div>
                     
+                    <!-- Footer -->
                     <div class='footer'>
-                        <p>Tento email byl automaticky vygenerován</p>
-                        <p class='timestamp'>{$current_time}</p>
-                        <p style='margin-top: 10px; font-size: 11px;'>
-                            Systém pro správu technických problémů v1.2
-                        </p>
+                        <div class='footer-content'>
+                            <div class='footer-title'>IT Support System</div>
+                            <div>Automaticky generovaná notifikace • {$current_time}</div>
+                            <div style='margin-top: 12px; font-size: 12px;'>
+                                Systém pro správu IT incidentů a požadavků
+                            </div>
+                        </div>
                     </div>
                 </div>
             </body>
@@ -272,31 +393,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Alternativní textová verze
             $alt_body = "
-        TECHNICKÝ PROBLÉM [{$urgency}]
-        =====================================
+        IT Support System - Incident Notification
+        ==========================================
         
-        Třída: {$class}
+        INCIDENT ID: {$incident_id}
+        PRIORITA: {$urgency} ({$current_urgency['status']})
+        ČAS: {$current_time}
+        
+        DETAIL INCIDENTU
+        ================
+        Kategorie: {$class}
         Naléhavost: {$urgency}
-        Čas nahlášení: {$current_time}
         
         Popis problému:
         {$description}
         
-        Nahlásil: {$user_name}
+        NAHLÁSIL
+        ========
+        Uživatel: {$user_name}
+        Čas nahlášení: {$current_time}
         
-        =====================================
-        Tento email byl automaticky vygenerován systémem pro správu technických problémů.
+        ==========================================
+        IT Support System - Automatická notifikace
             ";
             
             $mail->AltBody = $alt_body;
         
             $mail->send();
-            $success_message = "✅ Problém byl úspěšně nahlášen a příslušný tým byl informován";
+            $success_message = "✅ Incident byl úspěšně nahlášen (ID: {$incident_id})";
             
         } catch (Exception $e) {
-            $error_message = "❌ Chyba při nahlášení problému: {$mail->ErrorInfo}";
+            $error_message = "❌ Chyba při nahlášení incidentu: {$mail->ErrorInfo}";
         }
-        
     } else {
         $email = $conn->real_escape_string($_POST['email']);
         $password = $_POST['password'];
