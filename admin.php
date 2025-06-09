@@ -1,8 +1,17 @@
 <?php
 require_once 'auth.php';
 require_once 'db.php';
+require 'vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
+
 redirect_if_not_logged_in();
 if (!is_admin()) die("Přístup odepřen");
+
+// Načtení konfigurace
+$mail_config = require 'config.php';
 
 // Správa uživatelů
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -10,12 +19,257 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         case 'create':
             $name = $conn->real_escape_string($_POST['name']);
             $email = $conn->real_escape_string($_POST['email']);
-            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+            $password = $_POST['password'];
             $role = $_POST['role'] === 'admin' ? 'admin' : 'user';
             
             $stmt = $conn->prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $name, $email, $password, $role);
-            $stmt->execute();
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt->bind_param("ssss", $name, $email, $password_hash, $role);
+            
+            if ($stmt->execute()) {
+                // Odeslání emailu s přihlašovacími údaji
+                $mail = new PHPMailer(true);
+                try {
+                    // Nastavení serveru
+                    $mail->isSMTP();
+                    $mail->Host = $mail_config['smtp']['host'];
+                    $mail->SMTPAuth = true;
+                    $mail->Username = $mail_config['smtp']['username'];
+                    $mail->Password = $mail_config['smtp']['password'];
+                    $mail->SMTPSecure = $mail_config['smtp']['encryption'];
+                    $mail->Port = $mail_config['smtp']['port'];
+                    $mail->CharSet = $mail_config['smtp']['charset'];
+                
+                    // Příjemci
+                    $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
+                    $mail->addAddress($email, $name);
+                
+                    // Obsah
+                    $mail->isHTML(true);
+                    $mail->Subject = "Přístupové údaje - Rezervační systém ZŠ Kamenická";
+                    
+                    $message = "
+                    <!DOCTYPE html>
+                    <html lang='cs'>
+                    <head>
+                        <meta charset='UTF-8'>
+                        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                        <title>Přístupové údaje</title>
+                        <style>
+                            * {
+                                margin: 0;
+                                padding: 0;
+                                box-sizing: border-box;
+                            }
+                            
+                            body {
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                line-height: 1.6;
+                                color: #1f2937;
+                                background-color: #f8fafc;
+                            }
+                            
+                            .email-container {
+                                max-width: 600px;
+                                margin: 20px auto;
+                                background: #ffffff;
+                                border-radius: 8px;
+                                overflow: hidden;
+                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                border: 1px solid #e5e7eb;
+                            }
+                            
+                            .header {
+                                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                                color: white;
+                                padding: 24px;
+                                text-align: center;
+                            }
+                            
+                            .logo-section {
+                                width: 100%;
+                                margin-bottom: 16px;
+                            }
+                            
+                            .logo {
+                                width: 100%;
+                                max-width: 300px;
+                                height: auto;
+                                margin: 0 auto;
+                                display: block;
+                            }
+                            
+                            .company-info {
+                                margin-top: 16px;
+                            }
+                            
+                            .company-info h1 {
+                                font-size: 20px;
+                                font-weight: 600;
+                                margin-bottom: 4px;
+                            }
+                            
+                            .company-info p {
+                                font-size: 14px;
+                                opacity: 0.9;
+                            }
+                            
+                            .content {
+                                padding: 24px;
+                            }
+                            
+                            .welcome-section {
+                                margin-bottom: 24px;
+                            }
+                            
+                            .welcome-text {
+                                font-size: 16px;
+                                color: #374151;
+                                margin-bottom: 16px;
+                            }
+                            
+                            .credentials-box {
+                                background: #f8fafc;
+                                border: 1px solid #e5e7eb;
+                                border-radius: 6px;
+                                padding: 16px;
+                                margin-bottom: 24px;
+                            }
+                            
+                            .credentials-title {
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: #6b7280;
+                                text-transform: uppercase;
+                                letter-spacing: 0.05em;
+                                margin-bottom: 12px;
+                            }
+                            
+                            .credential-item {
+                                margin-bottom: 12px;
+                            }
+                            
+                            .credential-label {
+                                font-size: 13px;
+                                color: #6b7280;
+                                margin-bottom: 4px;
+                            }
+                            
+                            .credential-value {
+                                font-size: 15px;
+                                font-weight: 600;
+                                color: #111827;
+                                background: #ffffff;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                border: 1px solid #e5e7eb;
+                            }
+                            
+                            .footer {
+                                background: #1f2937;
+                                color: #9ca3af;
+                                padding: 24px;
+                                text-align: center;
+                            }
+                            
+                            .footer-content {
+                                font-size: 13px;
+                                line-height: 1.5;
+                            }
+                            
+                            .footer-title {
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                font-size: 15px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class='email-container'>
+                            <div class='header'>
+                                <div class='logo-section'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
+                                    <div class='company-info'>
+                                        <h1>Rezervační systém</h1>
+                                        <p>ZŠ Kamenická</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class='content'>
+                                <div class='welcome-section'>
+                                    <div class='welcome-text'>
+                                        Vážený/á {$name},<br><br>
+                                        byl vám vytvořen účet v rezervačním systému ZŠ Kamenická. Níže naleznete vaše přihlašovací údaje.
+                                    </div>
+                                </div>
+                                
+                                <div class='credentials-box'>
+                                    <div class='credentials-title'>Přístupové údaje</div>
+                                    <div class='credential-item'>
+                                        <div class='credential-label'>Email</div>
+                                        <div class='credential-value'>{$email}</div>
+                                    </div>
+                                    <div class='credential-item'>
+                                        <div class='credential-label'>Heslo</div>
+                                        <div class='credential-value'>{$password}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class='welcome-text'>
+                                    Pro přihlášení použijte tyto údaje na adrese:<br>
+                                    <a href='https://it.zskamenicka.cz' style='color: #2563eb;'>https://it.zskamenicka.cz</a>
+                                </div>
+                            </div>
+                            
+                            <div class='footer'>
+                                <div class='footer-content'>
+                                    <div class='footer-title'>Rezervační systém ZŠ Kamenická</div>
+                                    <div>Automaticky generovaná zpráva • " . date('d.m.Y H:i:s') . "</div>
+                                    <div style='margin-top: 12px; font-size: 12px;'>
+                                        Systém pro správu rezervací a technických problémů
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                    ";
+                
+                    $mail->Body = $message;
+                    
+                    // Alternativní textová verze
+                    $alt_body = "
+                    Rezervační systém ZŠ Kamenická - Přístupové údaje
+                    ==========================================
+                    
+                    Vážený/á {$name},
+                    
+                    byl vám vytvořen účet v rezervačním systému ZŠ Kamenická.
+                    
+                    PŘÍSTUPOVÉ ÚDAJE
+                    ===============
+                    Email: {$email}
+                    Heslo: {$password}
+                    
+                    Pro přihlášení navštivte: https://it.zskamenicka.cz
+                    
+                    ==========================================
+                    Rezervační systém ZŠ Kamenická
+                    ";
+                    
+                    $mail->AltBody = $alt_body;
+                
+                    $mail->send();
+                    $success_message = "✅ Uživatel byl úspěšně vytvořen a odeslán email s přihlašovacími údaji";
+                    
+                } catch (Exception $e) {
+                    $error_message = "❌ Chyba při odesílání emailu: {$mail->ErrorInfo}";
+                }
+            } else {
+                $error_message = "❌ Chyba při vytváření uživatele";
+            }
             break;
             
         case 'update':
@@ -23,6 +277,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $name = $conn->real_escape_string($_POST['name']);
             $email = $conn->real_escape_string($_POST['email']);
             $role = $_POST['role'] === 'admin' ? 'admin' : 'user';
+            
+            // Získání původních údajů pro porovnání
+            $stmt = $conn->prepare("SELECT name, email, role FROM users WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $old_data = $stmt->get_result()->fetch_assoc();
             
             if (!empty($_POST['password'])) {
                 $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
@@ -32,12 +292,457 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?");
                 $stmt->bind_param("sssi", $name, $email, $role, $id);
             }
-            $stmt->execute();
+            
+            if ($stmt->execute()) {
+                // Odeslání emailu o změně údajů
+                $mail = new PHPMailer(true);
+                try {
+                    // Nastavení serveru
+                    $mail->isSMTP();
+                    $mail->Host = $mail_config['smtp']['host'];
+                    $mail->SMTPAuth = true;
+                    $mail->Username = $mail_config['smtp']['username'];
+                    $mail->Password = $mail_config['smtp']['password'];
+                    $mail->SMTPSecure = $mail_config['smtp']['encryption'];
+                    $mail->Port = $mail_config['smtp']['port'];
+                    $mail->CharSet = $mail_config['smtp']['charset'];
+                
+                    // Příjemci
+                    $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
+                    $mail->addAddress($email, $name);
+                
+                    // Obsah
+                    $mail->isHTML(true);
+                    $mail->Subject = "Změna údajů - Rezervační systém ZŠ Kamenická";
+                    
+                    $changes = [];
+                    if ($old_data['name'] !== $name) $changes[] = "Jméno: {$old_data['name']} → {$name}";
+                    if ($old_data['email'] !== $email) $changes[] = "Email: {$old_data['email']} → {$email}";
+                    if ($old_data['role'] !== $role) $changes[] = "Role: {$old_data['role']} → {$role}";
+                    if (!empty($_POST['password'])) $changes[] = "Heslo bylo změněno";
+                    
+                    $message = "
+                    <!DOCTYPE html>
+                    <html lang='cs'>
+                    <head>
+                        <meta charset='UTF-8'>
+                        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                        <title>Změna údajů</title>
+                        <style>
+                            * {
+                                margin: 0;
+                                padding: 0;
+                                box-sizing: border-box;
+                            }
+                            
+                            body {
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                line-height: 1.6;
+                                color: #1f2937;
+                                background-color: #f8fafc;
+                            }
+                            
+                            .email-container {
+                                max-width: 600px;
+                                margin: 20px auto;
+                                background: #ffffff;
+                                border-radius: 8px;
+                                overflow: hidden;
+                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                border: 1px solid #e5e7eb;
+                            }
+                            
+                            .header {
+                                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                                color: white;
+                                padding: 24px;
+                                text-align: center;
+                            }
+                            
+                            .logo-section {
+                                width: 100%;
+                                margin-bottom: 16px;
+                            }
+                            
+                            .logo {
+                                width: 100%;
+                                max-width: 300px;
+                                height: auto;
+                                margin: 0 auto;
+                                display: block;
+                            }
+                            
+                            .company-info {
+                                margin-top: 16px;
+                            }
+                            
+                            .company-info h1 {
+                                font-size: 20px;
+                                font-weight: 600;
+                                margin-bottom: 4px;
+                            }
+                            
+                            .company-info p {
+                                font-size: 14px;
+                                opacity: 0.9;
+                            }
+                            
+                            .content {
+                                padding: 24px;
+                            }
+                            
+                            .welcome-section {
+                                margin-bottom: 24px;
+                            }
+                            
+                            .welcome-text {
+                                font-size: 16px;
+                                color: #374151;
+                                margin-bottom: 16px;
+                            }
+                            
+                            .changes-box {
+                                background: #f8fafc;
+                                border: 1px solid #e5e7eb;
+                                border-radius: 6px;
+                                padding: 16px;
+                                margin-bottom: 24px;
+                            }
+                            
+                            .changes-title {
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: #6b7280;
+                                text-transform: uppercase;
+                                letter-spacing: 0.05em;
+                                margin-bottom: 12px;
+                            }
+                            
+                            .change-item {
+                                margin-bottom: 8px;
+                                padding: 8px;
+                                background: #ffffff;
+                                border-radius: 4px;
+                                border: 1px solid #e5e7eb;
+                            }
+                            
+                            .footer {
+                                background: #1f2937;
+                                color: #9ca3af;
+                                padding: 24px;
+                                text-align: center;
+                            }
+                            
+                            .footer-content {
+                                font-size: 13px;
+                                line-height: 1.5;
+                            }
+                            
+                            .footer-title {
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                font-size: 15px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class='email-container'>
+                            <div class='header'>
+                                <div class='logo-section'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
+                                    <div class='company-info'>
+                                        <h1>Rezervační systém</h1>
+                                        <p>ZŠ Kamenická</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class='content'>
+                                <div class='welcome-section'>
+                                    <div class='welcome-text'>
+                                        Vážený/á {$name},<br><br>
+                                        byly změněny údaje vašeho účtu v rezervačním systému ZŠ Kamenická.
+                                    </div>
+                                </div>
+                                
+                                <div class='changes-box'>
+                                    <div class='changes-title'>Provedené změny</div>
+                                    " . implode('', array_map(function($change) {
+                                        return "<div class='change-item'>{$change}</div>";
+                                    }, $changes)) . "
+                                </div>
+                                
+                                <div class='welcome-text'>
+                                    Pro přihlášení použijte své nové údaje na adrese:<br>
+                                    <a href='https://it.zskamenicka.cz' style='color: #2563eb;'>https://it.zskamenicka.cz</a>
+                                </div>
+                            </div>
+                            
+                            <div class='footer'>
+                                <div class='footer-content'>
+                                    <div class='footer-title'>Rezervační systém ZŠ Kamenická</div>
+                                    <div>Automaticky generovaná zpráva • " . date('d.m.Y H:i:s') . "</div>
+                                    <div style='margin-top: 12px; font-size: 12px;'>
+                                        Systém pro správu rezervací a technických problémů
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                    ";
+                
+                    $mail->Body = $message;
+                    
+                    // Alternativní textová verze
+                    $alt_body = "
+                    Rezervační systém ZŠ Kamenická - Změna údajů
+                    ==========================================
+                    
+                    Vážený/á {$name},
+                    
+                    byly změněny údaje vašeho účtu v rezervačním systému ZŠ Kamenická.
+                    
+                    PROVEDENÉ ZMĚNY
+                    ===============
+                    " . implode("\n", $changes) . "
+                    
+                    Pro přihlášení použijte své nové údaje na adrese: https://it.zskamenicka.cz
+                    
+                    ==========================================
+                    Rezervační systém ZŠ Kamenická
+                    ";
+                    
+                    $mail->AltBody = $alt_body;
+                
+                    $mail->send();
+                    $success_message = "✅ Údaje byly úspěšně aktualizovány a odeslán email s notifikací";
+                    
+                } catch (Exception $e) {
+                    $error_message = "❌ Chyba při odesílání emailu: {$mail->ErrorInfo}";
+                }
+            }
             break;
             
         case 'delete':
             $id = intval($_POST['id']);
+            
+            // Získání údajů uživatele před smazáním
+            $stmt = $conn->prepare("SELECT name, email FROM users WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $user_data = $stmt->get_result()->fetch_assoc();
+            
+            if ($user_data) {
+                // Odeslání emailu o smazání účtu
+                $mail = new PHPMailer(true);
+                try {
+                    // Nastavení serveru
+                    $mail->isSMTP();
+                    $mail->Host = $mail_config['smtp']['host'];
+                    $mail->SMTPAuth = true;
+                    $mail->Username = $mail_config['smtp']['username'];
+                    $mail->Password = $mail_config['smtp']['password'];
+                    $mail->SMTPSecure = $mail_config['smtp']['encryption'];
+                    $mail->Port = $mail_config['smtp']['port'];
+                    $mail->CharSet = $mail_config['smtp']['charset'];
+                
+                    // Příjemci
+                    $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
+                    $mail->addAddress($user_data['email'], $user_data['name']);
+                
+                    // Obsah
+                    $mail->isHTML(true);
+                    $mail->Subject = "Smazání účtu - Rezervační systém ZŠ Kamenická";
+                    
+                    $message = "
+                    <!DOCTYPE html>
+                    <html lang='cs'>
+                    <head>
+                        <meta charset='UTF-8'>
+                        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                        <title>Smazání účtu</title>
+                        <style>
+                            * {
+                                margin: 0;
+                                padding: 0;
+                                box-sizing: border-box;
+                            }
+                            
+                            body {
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                line-height: 1.6;
+                                color: #1f2937;
+                                background-color: #f8fafc;
+                            }
+                            
+                            .email-container {
+                                max-width: 600px;
+                                margin: 20px auto;
+                                background: #ffffff;
+                                border-radius: 8px;
+                                overflow: hidden;
+                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                border: 1px solid #e5e7eb;
+                            }
+                            
+                            .header {
+                                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                                color: white;
+                                padding: 24px;
+                                text-align: center;
+                            }
+                            
+                            .logo-section {
+                                width: 100%;
+                                margin-bottom: 16px;
+                            }
+                            
+                            .logo {
+                                width: 100%;
+                                max-width: 300px;
+                                height: auto;
+                                margin: 0 auto;
+                                display: block;
+                            }
+                            
+                            .company-info {
+                                margin-top: 16px;
+                            }
+                            
+                            .company-info h1 {
+                                font-size: 20px;
+                                font-weight: 600;
+                                margin-bottom: 4px;
+                            }
+                            
+                            .company-info p {
+                                font-size: 14px;
+                                opacity: 0.9;
+                            }
+                            
+                            .content {
+                                padding: 24px;
+                            }
+                            
+                            .welcome-section {
+                                margin-bottom: 24px;
+                            }
+                            
+                            .welcome-text {
+                                font-size: 16px;
+                                color: #374151;
+                                margin-bottom: 16px;
+                            }
+                            
+                            .warning-box {
+                                background: #fef2f2;
+                                border: 1px solid #fee2e2;
+                                border-radius: 6px;
+                                padding: 16px;
+                                margin-bottom: 24px;
+                            }
+                            
+                            .warning-title {
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: #dc2626;
+                                text-transform: uppercase;
+                                letter-spacing: 0.05em;
+                                margin-bottom: 12px;
+                            }
+                            
+                            .footer {
+                                background: #1f2937;
+                                color: #9ca3af;
+                                padding: 24px;
+                                text-align: center;
+                            }
+                            
+                            .footer-content {
+                                font-size: 13px;
+                                line-height: 1.5;
+                            }
+                            
+                            .footer-title {
+                                color: white;
+                                font-weight: 600;
+                                margin-bottom: 8px;
+                                font-size: 15px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class='email-container'>
+                            <div class='header'>
+                                <div class='logo-section'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
+                                    <div class='company-info'>
+                                        <h1>Rezervační systém</h1>
+                                        <p>ZŠ Kamenická</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class='content'>
+                                <div class='welcome-section'>
+                                    <div class='welcome-text'>
+                                        Vážený/á {$user_data['name']},<br><br>
+                                        váš účet v rezervačním systému ZŠ Kamenická byl smazán.
+                                    </div>
+                                </div>
+                                
+                                <div class='warning-box'>
+                                    <div class='warning-title'>Důležité upozornění</div>
+                                    <p>Váš účet byl smazán z databáze. Pokud se domníváte, že k tomu došlo omylem, kontaktujte prosím administrátora systému.</p>
+                                </div>
+                            </div>
+                            
+                            <div class='footer'>
+                                <div class='footer-content'>
+                                    <div class='footer-title'>Rezervační systém ZŠ Kamenická</div>
+                                    <div>Automaticky generovaná zpráva • " . date('d.m.Y H:i:s') . "</div>
+                                    <div style='margin-top: 12px; font-size: 12px;'>
+                                        Systém pro správu rezervací a technických problémů
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                    ";
+                
+                    $mail->Body = $message;
+                    
+                    // Alternativní textová verze
+                    $alt_body = "
+                    Rezervační systém ZŠ Kamenická - Smazání účtu
+                    ==========================================
+                    
+                    Vážený/á {$user_data['name']},
+                    
+                    váš účet v rezervačním systému ZŠ Kamenická byl smazán.
+                    
+                    DŮLEŽITÉ UPOZORNĚNÍ
+                    ==================
+                    Váš účet byl smazán z databáze. Pokud se domníváte, že k tomu došlo omylem, 
+                    kontaktujte prosím administrátora systému.
+                    
+                    ==========================================
+                    Rezervační systém ZŠ Kamenická
+                    ";
+                    
+                    $mail->AltBody = $alt_body;
+                
+                    $mail->send();
+                } catch (Exception $e) {
+                    // I když se email nepodaří odeslat, pokračujeme ve smazání účtu
+                }
+            }
+            
             $conn->query("DELETE FROM users WHERE id = $id");
+            $success_message = "✅ Uživatel byl úspěšně smazán";
             break;
     }
 }
