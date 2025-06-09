@@ -1,7 +1,7 @@
 <?php
 // Fetch database credentials from environment variables
 $host = getenv('DB_HOST');
-$user = getenv('DB_USER');Add commentMore actions
+$user = getenv('DB_USER');
 $pass = getenv('DB_PASSWORD');
 $db   = getenv('DB_NAME'); // Or DB_DATABASE, be consistent
 
