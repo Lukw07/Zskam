@@ -9,6 +9,7 @@ return [
         'password' => 'uysm ogqr keke pecw', // You need to set your email password here
         'from_email' => 'kry.pepa@gmail.com',
         'from_name' => 'Technický problém - ZŠ Kamenická',
+        'charset' => 'UTF-8'
     ],
     'admin' => [
         'email' => 'kry.pepa@gmail.com', // Change this to your admin email
@@ -17,5 +18,8 @@ return [
     'site' => [
         'name' => 'Technický problém - ZŠ Kamenická',
         'url' => 'https://it.zskamenicka.cz' // Update with your actual domain
+    ],
+    'recipients' => [
+        'admin' => 'kry.pepa@gmail.com'
     ]
 ]; 
