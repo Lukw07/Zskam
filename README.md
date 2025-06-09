@@ -1,59 +1,108 @@
-# Rezervační systém ZŠ Kamenická
+# IT Support System - ZŠ Kamenická
 
-Systém pro správu rezervací technického vybavení na základní škole.
+Systém pro správu IT incidentů a rezervací technického vybavení pro ZŠ Kamenická.
 
-## Funkce systému
+## Funkce
 
-### Pro všechny uživatele
-- Přihlášení do systému
-- Nahlášení technického problému
-- Zobrazení aktivních rezervací
-- Zobrazení historie rezervací
-- Vytváření nových rezervací
-- Úprava vlastních rezervací
-- Smazání vlastních rezervací
+- **Správa technických problémů**
+  - Nahlášení technických problémů
+  - Sledování stavu problémů
+  - Filtrování a řazení incidentů
+  - Automatické notifikace emailem
 
-### Pro administrátory
-- Správa uživatelů (vytváření, úprava, mazání)
-- Správa technických problémů
-- Správa zařízení
-- Úprava všech rezervací
+- **Rezervace vybavení**
+  - Rezervace technického vybavení
+  - Přehled dostupnosti
+  - Omezení na pracovní dny
+  - Maximální rezervace 7 dní dopředu
 
-## Technické požadavky
+- **Administrace**
+  - Správa uživatelů
+  - Statistiky využití
+  - Přehled rezervací
+  - Správa technických problémů
 
-- PHP 7.4 nebo novější
-- MySQL 5.7 nebo novější
-- Webový server (Apache/Nginx)
+## Požadavky
+
+- PHP 7.4 nebo vyšší
+- MySQL 5.7 nebo vyšší
+- Composer
+- SMTP server pro odesílání emailů
 
 ## Instalace
 
-1. Naklonujte repozitář do složky webového serveru
-2. Vytvořte databázi a importujte strukturu z `database.sql`
-3. Upravte přístupové údaje k databázi v souboru `db.php`
-4. Nastavte správná oprávnění pro složky a soubory
-5. Otevřete aplikaci v prohlížeči
+1. **Naklonujte repozitář**
+   ```bash
+   git clone [URL_REPOZITÁŘE]
+   cd zskam
+   ```
 
-## Struktura databáze
+2. **Nainstalujte závislosti**
+   ```bash
+   composer install
+   ```
 
-### Tabulky
-- `users` - uživatelé systému
-- `devices` - technické vybavení
-- `reservations` - rezervace
-- `hours` - definice hodin
-- `technical_issues` - nahlášené technické problémy
+3. **Nastavte databázi**
+   - Vytvořte databázi `zskamenicka_rezv`
+   - Importujte strukturu z `database.sql`
+
+4. **Nakonfigurujte email**
+   - Upravte soubor `config.php`
+   - Nastavte SMTP údaje pro odesílání emailů
+
+5. **Nastavte oprávnění**
+   ```bash
+   chmod 755 -R .
+   chmod 777 -R uploads/
+   ```
+
+## Struktura projektu
+
+```
+├── admin.php              # Administrace uživatelů
+├── admin_issues.php       # Správa technických problémů
+├── auth.php              # Autentizace
+├── config.php            # Konfigurace
+├── dashboard.php         # Hlavní přehled
+├── db.php               # Připojení k databázi
+├── history.php          # Historie rezervací
+├── index.php            # Přihlašovací stránka
+├── navbar.php           # Navigační menu
+├── reservation.php      # Rezervace vybavení
+├── statistics.php       # Statistiky
+└── vendor/              # Composer závislosti
+```
+
+## Použití
+
+1. **Přihlášení**
+   - Otevřete `index.php` v prohlížeči
+   - Přihlaste se pomocí emailu a hesla
+
+2. **Nahlášení problému**
+   - Vyplňte formulář na hlavní stránce
+   - Zadejte třídu, popis a naléhavost
+   - Systém automaticky odešle notifikaci
+
+3. **Rezervace vybavení**
+   - Vyberte datum a zařízení
+   - Zkontrolujte dostupnost
+   - Zadejte počet kusů
+   - Potvrďte rezervaci
 
 ## Bezpečnost
 
-- Hesla jsou hashována pomocí PHP funkce `password_hash()`
-- Všechny SQL dotazy používají prepared statements
-- Implementována ochrana proti SQL injection
-- Implementována ochrana proti XSS útokům
-- Implementována kontrola oprávnění pro všechny akce
+- Hesla jsou hashována pomocí `password_hash()`
+- Používány prepared statements pro SQL
+- Validace všech vstupů
+- Ověření oprávnění pro každou akci
 
-## Autor
+## Podpora
 
-Systém byl vytvořen pro ZŠ Kamenická.
+Pro technickou podporu kontaktujte:
+- Email: kry.pepa@gmail.com
+- Web: https://it.zskamenicka.cz
 
 ## Licence
 
-Všechna práva vyhrazena. 
+Tento projekt je určen pouze pro interní použití ZŠ Kamenická. 
