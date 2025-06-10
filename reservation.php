@@ -3,6 +3,9 @@ require_once 'auth.php';
 require_once 'db.php';
 redirect_if_not_logged_in();
 
+// Nastavení časové zóny na Prahu
+date_default_timezone_set('Europe/Prague');
+
 $error = '';
 $success = '';
 $devices = $conn->query("SELECT * FROM devices");
@@ -55,274 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
                 if ($stmt->execute()) {
                     $success = "Rezervace úspěšně vytvořena";
-                    
-                    // Odeslání emailu
-                    require 'vendor/autoload.php';
-                    $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-                    try {
-                        $mail_config = require 'config.php';
-                        
-                        $mail->isSMTP();
-                        $mail->Host = $mail_config['smtp']['host'];
-                        $mail->SMTPAuth = true;
-                        $mail->Username = $mail_config['smtp']['username'];
-                        $mail->Password = $mail_config['smtp']['password'];
-                        $mail->SMTPSecure = $mail_config['smtp']['encryption'];
-                        $mail->Port = $mail_config['smtp']['port'];
-                        $mail->CharSet = $mail_config['smtp']['charset'];
-                        
-                        $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
-                        $mail->addAddress($_SESSION['email'], $_SESSION['name']);
-                        
-                        $mail->isHTML(true);
-                        $mail->Subject = "✅ Rezervace byla vytvořena";
-                        
-                        // Získání informací o zařízení
-                        $stmt = $conn->prepare("SELECT device_name FROM devices WHERE id = ?");
-                        $stmt->bind_param("i", $device_id);
-                        $stmt->execute();
-                        $device_name = $stmt->get_result()->fetch_assoc()['device_name'];
-                        
-                        // Získání informací o hodině
-                        $stmt = $conn->prepare("SELECT hour_name FROM hours WHERE hour_number = ?");
-                        $stmt->bind_param("i", $hour);
-                        $stmt->execute();
-                        $hour_name = $stmt->get_result()->fetch_assoc()['hour_name'];
-                        
-                        $message = "
-                        <!DOCTYPE html>
-                        <html lang='cs'>
-                        <head>
-                            <meta charset='UTF-8'>
-                            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                            <title>Rezervace byla vytvořena</title>
-                            <style>
-                                * {
-                                    margin: 0;
-                                    padding: 0;
-                                    box-sizing: border-box;
-                                }
-                                
-                                body {
-                                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                                    line-height: 1.6;
-                                    color: #333333;
-                                    background-color: #ffffff;
-                                }
-                                
-                                .email-container {
-                                    max-width: 600px;
-                                    margin: 20px auto;
-                                    background: #ffffff;
-                                    border-radius: 8px;
-                                    overflow: hidden;
-                                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                                    border: 1px solid #e5e7eb;
-                                }
-                                
-                                .header {
-                                    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                                    color: white;
-                                    padding: 24px;
-                                    text-align: center;
-                                }
-                                
-                                .logo-section {
-                                    width: 100%;
-                                    margin-bottom: 16px;
-                                }
-                                
-                                .logo {
-                                    width: 100%;
-                                    max-width: 300px;
-                                    height: auto;
-                                    margin: 0 auto;
-                                    display: block;
-                                }
-                                
-                                .company-info {
-                                    margin-top: 16px;
-                                }
-                                
-                                .company-info h1 {
-                                    font-size: 20px;
-                                    font-weight: 600;
-                                    margin-bottom: 4px;
-                                }
-                                
-                                .company-info p {
-                                    font-size: 14px;
-                                    opacity: 0.9;
-                                }
-                                
-                                .content {
-                                    padding: 24px;
-                                }
-                                
-                                .welcome-section {
-                                    margin-bottom: 24px;
-                                }
-                                
-                                .welcome-text {
-                                    font-size: 16px;
-                                    color: #333333;
-                                    margin-bottom: 16px;
-                                }
-                                
-                                .reservation-box {
-                                    background: #f8fafc;
-                                    border: 1px solid #e5e7eb;
-                                    border-radius: 6px;
-                                    padding: 16px;
-                                    margin-bottom: 24px;
-                                }
-                                
-                                .reservation-title {
-                                    font-size: 14px;
-                                    font-weight: 600;
-                                    color: #4b5563;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.05em;
-                                    margin-bottom: 12px;
-                                }
-                                
-                                .reservation-item {
-                                    margin-bottom: 12px;
-                                }
-                                
-                                .reservation-label {
-                                    font-size: 13px;
-                                    color: #4b5563;
-                                    margin-bottom: 4px;
-                                }
-                                
-                                .reservation-value {
-                                    font-size: 15px;
-                                    font-weight: 600;
-                                    color: #111827;
-                                    background: #ffffff;
-                                    padding: 8px 12px;
-                                    border-radius: 4px;
-                                    border: 1px solid #e5e7eb;
-                                }
-
-                                .timestamp {
-                                    font-size: 12px;
-                                    color: #6b7280;
-                                    margin-top: 8px;
-                                    text-align: right;
-                                }
-                                
-                                .footer {
-                                    background: #1f2937;
-                                    color: #9ca3af;
-                                    padding: 24px;
-                                    text-align: center;
-                                }
-                                
-                                .footer-content {
-                                    font-size: 13px;
-                                    line-height: 1.5;
-                                }
-                                
-                                .footer-title {
-                                    color: white;
-                                    font-weight: 600;
-                                    margin-bottom: 8px;
-                                    font-size: 15px;
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <div class='email-container'>
-                                <div class='header'>
-                                    <div class='logo-section'>
-                                        <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
-                                        <div class='company-info'>
-                                            <h1>Rezervo</h1>
-                                            <p>ZŠ Kamenická</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class='content'>
-                                    <div class='welcome-section'>
-                                        <div class='welcome-text'>
-                                            Vážený/á {$_SESSION['name']},<br><br>
-                                            vaše rezervace byla úspěšně vytvořena.
-                                        </div>
-                                    </div>
-                                    
-                                    <div class='reservation-box'>
-                                        <div class='reservation-title'>Detaily rezervace</div>
-                                        <div class='reservation-item'>
-                                            <div class='reservation-label'>Zařízení</div>
-                                            <div class='reservation-value'>{$device_name}</div>
-                                        </div>
-                                        <div class='reservation-item'>
-                                            <div class='reservation-label'>Datum</div>
-                                            <div class='reservation-value'>" . date('d.m.Y', strtotime($date)) . "</div>
-                                        </div>
-                                        <div class='reservation-item'>
-                                            <div class='reservation-label'>Hodina</div>
-                                            <div class='reservation-value'>{$hour_name}</div>
-                                        </div>
-                                        <div class='reservation-item'>
-                                            <div class='reservation-label'>Počet kusů</div>
-                                            <div class='reservation-value'>{$quantity}</div>
-                                        </div>
-                                        <div class='timestamp'>
-                                            Rezervace vytvořena: " . date('d.m.Y H:i:s') . "
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class='footer'>
-                                    <div class='footer-content'>
-                                        <div class='footer-title'>Rezervo</div>
-                                        <div style='margin-top: 12px; font-size: 12px;'>
-                                            By Kryštof Tůma
-                                        </div>
-                                        <div style='margin-top: 8px; font-size: 11px; color: #6b7280;'>
-                                            IT systém pro správu incidentů a rezervací
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </body>
-                        </html>
-                        ";
-                        
-                        $mail->Body = $message;
-                        
-                        // Alternativní textová verze
-                        $alt_body = "
-                        Rezervační systém ZŠ Kamenická - Rezervace byla vytvořena
-                        ==========================================
-                        
-                        Vážený/á {$_SESSION['name']},
-                        
-                        vaše rezervace byla úspěšně vytvořena.
-                        
-                        DETAILY REZERVACE
-                        ===============
-                        Zařízení: {$device_name}
-                        Datum: " . date('d.m.Y', strtotime($date)) . "
-                        Hodina: {$hour_name}
-                        Počet kusů: {$quantity}
-                        Rezervace vytvořena: " . date('d.m.Y H:i:s') . "
-                        
-                        ==========================================
-                        Rezervo - IT systém pro správu incidentů a rezervací
-                        By Kryštof Tůma
-                        ";
-                        
-                        $mail->AltBody = $alt_body;
-                        
-                        $mail->send();
-                    } catch (Exception $e) {
-                        $error = "Chyba při odesílání emailu: {$mail->ErrorInfo}";
-                    }
+                    // Email odstraněn - uživatel nechce dostávat notifikace
                 } else {
                     $error = "Chyba při vytváření rezervace";
                 }
@@ -394,9 +130,10 @@ $edit_reservation = null;
                 font-size: 0.8rem;
             }
             
-            /* Úprava modálního okna */
+            /* Úprava modálního okna pro mobilní zařízení */
             .modal-dialog {
                 margin: 0.5rem;
+                max-width: calc(100vw - 1rem);
             }
             
             .modal-body {
@@ -416,6 +153,64 @@ $edit_reservation = null;
             .form-control, .form-select {
                 font-size: 0.9rem;
                 padding: 0.4rem 0.75rem;
+            }
+            
+            /* Úprava input group pro mobilní */
+            .input-group {
+                flex-wrap: nowrap;
+            }
+            
+            .input-group .form-control {
+                min-width: 0;
+                flex: 1;
+            }
+            
+            .input-group-text {
+                white-space: nowrap;
+            }
+            
+            /* Lepší styly pro quantity selector */
+            .quantity-selector {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin: 0.5rem 0;
+            }
+            
+            .quantity-btn {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 2px solid #007bff;
+                background: white;
+                color: #007bff;
+                font-weight: bold;
+                font-size: 1.2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .quantity-btn:hover {
+                background: #007bff;
+                color: white;
+            }
+            
+            .quantity-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
+            .quantity-display {
+                min-width: 60px;
+                text-align: center;
+                font-size: 1.1rem;
+                padding: 0.5rem;
+                border: 1px solid #ced4da;
+                border-radius: 0.25rem;
+                background: #f8f9fa;
             }
             
             /* Úprava tlačítek */
@@ -468,6 +263,14 @@ $edit_reservation = null;
                 font-size: 0.8rem;
             }
         }
+        
+        /* Časová zona info */
+        .timezone-info {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: center;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -475,6 +278,9 @@ $edit_reservation = null;
     
     <div class="container mt-4">
         <h2>Nová rezervace</h2>
+        <div class="timezone-info">
+            Čas: Praha (UTC+1) - <?= date('d.m.Y H:i:s') ?>
+        </div>
         
         <?php if ($error): ?>
             <div class="alert alert-danger"><?= $error ?></div>
@@ -700,11 +506,13 @@ $edit_reservation = null;
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Počet kusů:</label>
-                            <div class="input-group">
-                                <input type="number" name="quantity" id="quantityInput" class="form-control" min="1" required value="1" inputmode="numeric" pattern="[0-9]*">
-                                <span class="input-group-text">ks</span>
+                            <div class="quantity-selector d-flex align-items-center justify-content-center">
+                                <button type="button" class="quantity-btn" id="decreaseBtn" onclick="changeQuantity(-1)">−</button>
+                                <div class="quantity-display" id="quantityDisplay">1</div>
+                                <button type="button" class="quantity-btn" id="increaseBtn" onclick="changeQuantity(1)">+</button>
                             </div>
-                            <small class="text-muted">Dostupných: <span id="modalAvailable"></span> kusů</small>
+                            <input type="hidden" name="quantity" id="quantityInput" value="1">
+                            <small class="text-muted d-block text-center">Dostupných: <span id="modalAvailable"></span> kusů</small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -720,6 +528,22 @@ $edit_reservation = null;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let currentQuantity = 1;
+        let maxAvailable = 0;
+
+        function changeQuantity(change) {
+            const newQuantity = currentQuantity + change;
+            if (newQuantity >= 1 && newQuantity <= maxAvailable) {
+                currentQuantity = newQuantity;
+                document.getElementById('quantityDisplay').textContent = currentQuantity;
+                document.getElementById('quantityInput').value = currentQuantity;
+                
+                // Aktualizace tlačítek
+                document.getElementById('decreaseBtn').disabled = currentQuantity <= 1;
+                document.getElementById('increaseBtn').disabled = currentQuantity >= maxAvailable;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const availabilityTable = document.getElementById('availability-table');
             if (availabilityTable) {
@@ -736,8 +560,6 @@ $edit_reservation = null;
             });
 
             const modal = document.getElementById('reservationModal');
-            const quantityInput = document.getElementById('quantityInput');
-            let maxAvailable = 0;
 
             modal.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
@@ -752,19 +574,16 @@ $edit_reservation = null;
                 document.getElementById('modalDate').textContent = new Date(date).toLocaleDateString('cs-CZ');
                 document.getElementById('modalTime').textContent = time;
                 document.getElementById('modalDevice').textContent = deviceName;
-                quantityInput.max = available;
-                quantityInput.value = 1;
+                
+                // Resetování quantity selectoru
                 maxAvailable = available;
-            });
-
-            quantityInput.addEventListener('input', function() {
-                const value = parseInt(this.value) || 0;
-                if (value > maxAvailable) {
-                    this.value = maxAvailable;
-                }
-                if (value < 1) {
-                    this.value = 1;
-                }
+                currentQuantity = 1;
+                document.getElementById('quantityDisplay').textContent = currentQuantity;
+                document.getElementById('quantityInput').value = currentQuantity;
+                
+                // Aktualizace tlačítek
+                document.getElementById('decreaseBtn').disabled = currentQuantity <= 1;
+                document.getElementById('increaseBtn').disabled = currentQuantity >= maxAvailable;
             });
 
             // Zakázání víkendů v date pickeru
