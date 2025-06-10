@@ -23,11 +23,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("isss", $user_id, $class, $description, $urgency);
         $stmt->execute();
         
+        // Získání ID nově vytvořeného incidentu
+        $issue_id = $conn->insert_id;
+        
         // Získání jména uživatele pro email
         $stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $user_name = $stmt->get_result()->fetch_assoc()['name'];
+        
+        // Získání všech administrátorů
+        $admins = $conn->query("SELECT email FROM users WHERE role = 'admin'");
         
         // Odeslání emailu
         $mail = new PHPMailer(true);
@@ -41,11 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->SMTPSecure = $mail_config['smtp']['encryption'];
             $mail->Port = $mail_config['smtp']['port'];
             $mail->CharSet = $mail_config['smtp']['charset'];
-        
+
             // Příjemci
             $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
-            $mail->addAddress($mail_config['recipients']['admin']);
-        
+            while ($admin = $admins->fetch_assoc()) {
+                $mail->addAddress($admin['email']);
+            }
+
             // Obsah
             $mail->isHTML(true);
             $mail->Subject = "⚠️ IT Incident - {$class} | {$urgency}";
@@ -84,7 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $current_urgency = $urgency_settings[$urgency] ?? $urgency_settings['Nízká'];
             $current_time = date('d.m.Y H:i:s');
-            $incident_id = 'INC-' . date('Ymd') . '-' . strtoupper(substr(md5($current_time), 0, 6));
+            
+            // Použití skutečného ID incidentu s lepším formátováním
+            $incident_id = sprintf('INC-%06d', $issue_id);
+            
+            // URL pro označení jako přečteno s ID incidentu
+            $mark_read_url = "http://localhost/zskam/mark_read.php?id=" . $issue_id;
             
             $message = "
             <!DOCTYPE html>
@@ -235,8 +248,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     .info-value {
                         font-size: 15px;
-                        font-weight: 600;
-                        color: #1f2937;
+                        color: #111827;
+                        font-weight: 500;
                     }
                     
                     /* Description Box */
@@ -312,6 +325,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         margin-bottom: 8px;
                         font-size: 15px;
                     }
+                    
+                    .action-button {
+                        display: inline-block;
+                        background: #3b82f6;
+                        color: white;
+                        padding: 12px 24px;
+                        border-radius: 6px;
+                        text-decoration: none;
+                        font-weight: 500;
+                        margin-top: 16px;
+                        transition: background-color 0.2s;
+                    }
+                    
+                    .action-button:hover {
+                        background: #2563eb;
+                    }
                 </style>
             </head>
             <body>
@@ -321,19 +350,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class='logo-section'>
                             <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
                             <div class='company-info'>
-                                <h1>IT Support System</h1>
-                                <p>Incident Management Platform</p>
+                                <h1>Rezervo</h1>
+                                <p>IT Support System</p>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Urgency Banner -->
-                    <div class='urgency-banner'>
-                        <div class='urgency-info'>
-                            <div class='urgency-badge'>{$urgency}</div>
-                            <div class='urgency-text'>Naléhavost: {$urgency}</div>
+                    <div class='urgency-banner' style='background: #f8fafc; border-left: 4px solid #2563eb; padding: 20px; margin-bottom: 20px;'>
+                        <div class='incident-id' style='margin: 0; padding: 12px 20px; background: #1e293b; color: white; border-radius: 6px; font-family: monospace; font-size: 16px; letter-spacing: 1px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                            Incident ID: {$incident_id}
                         </div>
-                        <div class='incident-id'>{$incident_id}</div>
                     </div>
                     
                     <!-- Content -->
@@ -372,15 +399,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
                         </div>
+                        
+                        <div class='section' style='text-align: center;'>
+                            <a href='{$mark_read_url}' class='action-button' style='display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; margin-top: 16px; transition: background-color 0.2s;'>
+                                Označit jako přečteno
+                            </a>
+                        </div>
                     </div>
                     
                     <!-- Footer -->
                     <div class='footer'>
                         <div class='footer-content'>
-                            <div class='footer-title'>IT Support System</div>
-                            <div>Automaticky generovaná notifikace • {$current_time}</div>
+                            <div class='footer-title'>Rezervo</div>
                             <div style='margin-top: 12px; font-size: 12px;'>
-                                Systém pro správu IT incidentů a požadavků
+                                By Kryštof Tůma
+                            </div>
+                            <div style='margin-top: 8px; font-size: 11px; color: #6b7280;'>
+                                IT systém pro správu incidentů a rezervací
+                            </div>
+                            <div style='margin-top: 4px; font-size: 10px; color: #9ca3af;'>
+                                Tento email byl automaticky vygenerován dne {$current_time}
                             </div>
                         </div>
                     </div>
@@ -388,7 +426,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </body>
             </html>
             ";
-        
+            
             $mail->Body = $message;
             
             // Alternativní textová verze
@@ -413,12 +451,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Uživatel: {$user_name}
         Čas nahlášení: {$current_time}
         
+        OZNAČIT JAKO PŘEČTENO
+        ====================
+        {$mark_read_url}
+        
         ==========================================
-        IT Support System - Automatická notifikace
+        Rezervo - Automatická notifikace
+        By Kryštof Tůma
             ";
             
             $mail->AltBody = $alt_body;
-        
+
             $mail->send();
             $success_message = "✅ Incident byl úspěšně nahlášen (ID: {$incident_id})";
             
@@ -457,7 +500,7 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="60">
-    <title>Přihlášení</title>
+    <title>Rezervo - Přihlášení</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
@@ -716,3 +759,9 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
+<footer class="footer mt-auto py-3 bg-light">
+    <div class="container text-center">
+        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
+    </div>
+</footer>

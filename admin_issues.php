@@ -1,22 +1,28 @@
 <?php
 require_once 'auth.php';
 require_once 'db.php';
+require 'vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
+
 redirect_if_not_logged_in();
 if (!is_admin()) die("Přístup odepřen");
 
 // Zpracování změny stavu
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update_status') {
-        $issue_id = intval($_POST['issue_id']);
-        $new_status = $conn->real_escape_string($_POST['status']);
-        
-        $stmt = $conn->prepare("UPDATE technical_issues SET status = ? WHERE id = ?");
-        $stmt->bind_param("si", $new_status, $issue_id);
-        
-        if ($stmt->execute()) {
-            $success_message = "Stav byl úspěšně aktualizován";
-        } else {
-            $error_message = "Chyba při aktualizaci stavu";
+    $issue_id = intval($_POST['issue_id']);
+    $new_status = $conn->real_escape_string($_POST['status']);
+    
+    $stmt = $conn->prepare("UPDATE technical_issues SET status = ? WHERE id = ?");
+    $stmt->bind_param("si", $new_status, $issue_id);
+    
+    if ($stmt->execute()) {
+        $success_message = "Stav byl úspěšně aktualizován";
+    } else {
+        $error_message = "Chyba při aktualizaci stavu";
         }
     } elseif ($_POST['action'] === 'delete') {
         $issue_id = intval($_POST['issue_id']);
@@ -37,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Správa technických problémů</title>
+    <title>Rezervo - Správa technických problémů</title>
+    <link rel="icon" type="image/avif" href="https://zskamenicka.cz/wp-content/uploads/2025/06/ChatGPT-Image-9.-6.-2025-22_07_53.avif">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <style>
@@ -152,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         <div class="card mb-4">
             <div class="card-body">
-                <h5 class="card-title">Filtry</h5>
+                <h5 class="card-title">Filtry a řazení</h5>
                 <form method="get" class="row g-3" id="filterForm">
                     <div class="col-md-3">
                         <label class="form-label">Stav:</label>
@@ -161,7 +168,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             <option value="nový" <?= isset($_GET['status']) && $_GET['status'] === 'nový' ? 'selected' : '' ?>>Nový</option>
                             <option value="přečteno" <?= isset($_GET['status']) && $_GET['status'] === 'přečteno' ? 'selected' : '' ?>>Přečteno</option>
                             <option value="v řešení" <?= isset($_GET['status']) && $_GET['status'] === 'v řešení' ? 'selected' : '' ?>>V řešení</option>
-                            <option value="vyřešeno" <?= isset($_GET['status']) && $_GET['status'] === 'vyřešeno' ? 'selected' : '' ?>>Vyřešeno</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -174,12 +180,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Od data:</label>
-                        <input type="date" name="date_from" class="form-control" value="<?= isset($_GET['date_from']) ? htmlspecialchars($_GET['date_from']) : '' ?>" onchange="this.form.submit()">
+                        <label class="form-label">Řadit podle:</label>
+                        <select name="sort" class="form-select" onchange="this.form.submit()">
+                            <option value="created_at_desc" <?= (!isset($_GET['sort']) || $_GET['sort'] === 'created_at_desc') ? 'selected' : '' ?>>Nejnovější</option>
+                            <option value="created_at_asc" <?= isset($_GET['sort']) && $_GET['sort'] === 'created_at_asc' ? 'selected' : '' ?>>Nejstarší</option>
+                            <option value="urgency_asc" <?= isset($_GET['sort']) && $_GET['sort'] === 'urgency_asc' ? 'selected' : '' ?>>Naléhavost (vzestupně)</option>
+                            <option value="urgency_desc" <?= isset($_GET['sort']) && $_GET['sort'] === 'urgency_desc' ? 'selected' : '' ?>>Naléhavost (sestupně)</option>
+                        </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Do data:</label>
-                        <input type="date" name="date_to" class="form-control" value="<?= isset($_GET['date_to']) ? htmlspecialchars($_GET['date_to']) : '' ?>" onchange="this.form.submit()">
+                        <label class="form-label">Od data:</label>
+                        <input type="date" name="date_from" class="form-control" value="<?= isset($_GET['date_from']) ? htmlspecialchars($_GET['date_from']) : '' ?>" onchange="this.form.submit()">
                     </div>
                     <div class="col-12">
                         <a href="admin_issues.php" class="btn btn-secondary">Zrušit filtry</a>
@@ -188,7 +199,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             </div>
         </div>
 
-        <div class="card">
+        <!-- Aktivní problémy -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Aktivní problémy</h5>
+            </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -206,11 +221,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         </thead>
                         <tbody>
                             <?php
-                            // Sestavení SQL dotazu s filtry
+                            // Sestavení SQL dotazu s filtry pro aktivní problémy
                             $sql = "SELECT ti.*, u.name 
                                    FROM technical_issues ti 
                                    JOIN users u ON ti.user_id = u.id 
-                                   WHERE 1=1";
+                                   WHERE ti.status != 'vyřešeno'";
                             $params = array();
                             $types = "";
 
@@ -232,25 +247,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 $types .= "s";
                             }
 
-                            if (!empty($_GET['date_to'])) {
-                                $sql .= " AND DATE(ti.created_at) <= ?";
-                                $params[] = $_GET['date_to'];
-                                $types .= "s";
+                            // Přidání řazení
+                            $sort = isset($_GET['sort']) ? $_GET['sort'] : 'created_at_desc';
+                            switch ($sort) {
+                                case 'created_at_asc':
+                                    $sql .= " ORDER BY ti.created_at ASC";
+                                    break;
+                                case 'urgency_asc':
+                                    $sql .= " ORDER BY 
+                                        CASE ti.urgency
+                                            WHEN 'vysoká' THEN 1
+                                            WHEN 'střední' THEN 2
+                                            WHEN 'nízká' THEN 3
+                                        END ASC, ti.created_at DESC";
+                                    break;
+                                case 'urgency_desc':
+                                    $sql .= " ORDER BY 
+                                        CASE ti.urgency
+                                            WHEN 'vysoká' THEN 1
+                                            WHEN 'střední' THEN 2
+                                            WHEN 'nízká' THEN 3
+                                        END DESC, ti.created_at DESC";
+                                    break;
+                                default:
+                                    $sql .= " ORDER BY ti.created_at DESC";
                             }
-
-                            $sql .= " ORDER BY 
-                                CASE 
-                                    WHEN ti.status = 'nový' THEN 1
-                                    WHEN ti.status = 'v řešení' THEN 2
-                                    WHEN ti.status = 'přečteno' THEN 3
-                                    ELSE 4
-                                END,
-                                CASE ti.urgency
-                                    WHEN 'vysoká' THEN 1
-                                    WHEN 'střední' THEN 2
-                                    ELSE 3
-                                END,
-                                ti.created_at DESC";
 
                             $stmt = $conn->prepare($sql);
                             if (!empty($params)) {
@@ -272,7 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-<?= $issue['status'] === 'nový' ? 'primary' : ($issue['status'] === 'vyřešeno' ? 'success' : 'secondary') ?>">
+                                    <span class="badge bg-<?= $issue['status'] === 'nový' ? 'primary' : 'secondary' ?>">
                                         <?= $issue['status'] ?>
                                     </span>
                                 </td>
@@ -289,6 +310,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                         </select>
                                     </form>
                                     <form method="post" class="d-inline mt-1">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="issue_id" value="<?= $issue['id'] ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Opravdu chcete smazat tento technický problém?')">
+                                            <i class="fas fa-trash"></i> Smazat
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vyřešené problémy -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">Vyřešené problémy</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Uživatel</th>
+                                <th>Třída</th>
+                                <th>Popis</th>
+                                <th>Naléhavost</th>
+                                <th>Datum nahlášení</th>
+                                <th>Datum vyřešení</th>
+                                <th>Akce</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            // Sestavení SQL dotazu pro vyřešené problémy
+                            $sql = "SELECT ti.*, u.name 
+                                   FROM technical_issues ti 
+                                   JOIN users u ON ti.user_id = u.id 
+                                   WHERE ti.status = 'vyřešeno'";
+                            
+                            if (!empty($_GET['date_from'])) {
+                                $sql .= " AND DATE(ti.created_at) >= ?";
+                                $params[] = $_GET['date_from'];
+                                $types .= "s";
+                            }
+
+                            // Přidání řazení
+                            switch ($sort) {
+                                case 'created_at_asc':
+                                    $sql .= " ORDER BY ti.created_at ASC";
+                                    break;
+                                case 'urgency_asc':
+                                    $sql .= " ORDER BY 
+                                        CASE ti.urgency
+                                            WHEN 'vysoká' THEN 1
+                                            WHEN 'střední' THEN 2
+                                            WHEN 'nízká' THEN 3
+                                        END ASC, ti.created_at DESC";
+                                    break;
+                                case 'urgency_desc':
+                                    $sql .= " ORDER BY 
+                                        CASE ti.urgency
+                                            WHEN 'vysoká' THEN 1
+                                            WHEN 'střední' THEN 2
+                                            WHEN 'nízká' THEN 3
+                                        END DESC, ti.created_at DESC";
+                                    break;
+                                default:
+                                    $sql .= " ORDER BY ti.created_at DESC";
+                            }
+
+                            $stmt = $conn->prepare($sql);
+                            if (!empty($params)) {
+                                $stmt->bind_param($types, ...$params);
+                            }
+                            $stmt->execute();
+                            $issues = $stmt->get_result();
+                            
+                            while ($issue = $issues->fetch_assoc()):
+                            ?>
+                            <tr>
+                                <td><?= $issue['id'] ?></td>
+                                <td><?= htmlspecialchars($issue['name']) ?></td>
+                                <td><?= htmlspecialchars($issue['class']) ?></td>
+                                <td><?= htmlspecialchars($issue['description']) ?></td>
+                                <td>
+                                    <span class="badge bg-<?= $issue['urgency'] === 'vysoká' ? 'danger' : ($issue['urgency'] === 'střední' ? 'warning' : 'info') ?>">
+                                        <?= $issue['urgency'] ?>
+                                    </span>
+                                </td>
+                                <td><?= date('d.m.Y H:i', strtotime($issue['created_at'])) ?></td>
+                                <td><?= date('d.m.Y H:i', strtotime($issue['updated_at'] ?? $issue['created_at'])) ?></td>
+                                <td>
+                                    <form method="post" class="d-inline">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="issue_id" value="<?= $issue['id'] ?>">
                                         <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Opravdu chcete smazat tento technický problém?')">
@@ -323,4 +441,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         });
     </script>
 </body>
-</html> 
+</html>
+
+<footer class="footer mt-auto py-3 bg-light">
+    <div class="container text-center">
+        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
+    </div>
+</footer> 

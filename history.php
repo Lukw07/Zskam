@@ -8,7 +8,8 @@ redirect_if_not_logged_in();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historie</title>
+    <title>Rezervo - Historie</title>
+    <link rel="icon" type="image/avif" href="https://zskamenicka.cz/wp-content/uploads/2025/06/ChatGPT-Image-9.-6.-2025-22_07_53.avif">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
 </head>
@@ -70,3 +71,9 @@ redirect_if_not_logged_in();
     </script>
 </body>
 </html>
+
+<footer class="footer mt-auto py-3 bg-light">
+    <div class="container text-center">
+        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
+    </div>
+</footer>

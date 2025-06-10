@@ -22,6 +22,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $password = $_POST['password'];
             $role = $_POST['role'] === 'admin' ? 'admin' : 'user';
             
+            // Kontrola existence emailu
+            $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                $error_message = "❌ Uživatel s tímto emailem již existuje";
+                break;
+            }
+            
+            // Kontrola existence jména
+            $stmt = $conn->prepare("SELECT id FROM users WHERE name = ?");
+            $stmt->bind_param("s", $name);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                $error_message = "❌ Uživatel s tímto jménem již existuje";
+                break;
+            }
+            
             $stmt = $conn->prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)");
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             $stmt->bind_param("ssss", $name, $email, $password_hash, $role);
@@ -164,6 +182,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 border-radius: 4px;
                                 border: 1px solid #e5e7eb;
                             }
+
+                            .manual-section {
+                                background: #f0f9ff;
+                                border: 1px solid #bae6fd;
+                                border-radius: 6px;
+                                padding: 16px;
+                                margin-bottom: 24px;
+                            }
+
+                            .manual-title {
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: #0369a1;
+                                text-transform: uppercase;
+                                letter-spacing: 0.05em;
+                                margin-bottom: 12px;
+                            }
+
+                            .manual-link {
+                                display: inline-block;
+                                background: #0284c7;
+                                color: white;
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                text-decoration: none;
+                                font-weight: 500;
+                                margin-top: 8px;
+                            }
+
+                            .manual-link:hover {
+                                background: #0369a1;
+                            }
                             
                             .footer {
                                 background: #1f2937;
@@ -216,6 +266,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                         <div class='credential-value'>{$password}</div>
                                     </div>
                                 </div>
+
+                                <div class='manual-section'>
+                                    <div class='manual-title'>" . ($role === 'admin' ? 'Administrátorský manuál' : 'Uživatelský manuál') . "</div>
+                                    <p>Pro lepší orientaci v systému si prosím prostudujte náš " . ($role === 'admin' ? 'administrátorský' : 'uživatelský') . " manuál:</p>
+                                    <a href='https://zskamenicka.cz/wp-content/uploads/2025/06/README_" . ($role === 'admin' ? 'admin-2' : 'user') . ".pdf' class='manual-link'>
+                                        <i class='fas fa-book'></i> Stáhnout " . ($role === 'admin' ? 'administrátorský' : 'uživatelský') . " manuál
+                                    </a>
+                                </div>
                                 
                                 <div class='welcome-text'>
                                     Pro přihlášení použijte tyto údaje na adrese:<br>
@@ -225,10 +283,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             
                             <div class='footer'>
                                 <div class='footer-content'>
-                                    <div class='footer-title'>Rezervační systém ZŠ Kamenická</div>
-                                    <div>Automaticky generovaná zpráva • " . date('d.m.Y H:i:s') . "</div>
+                                    <div class='footer-title'>Rezervo</div>
                                     <div style='margin-top: 12px; font-size: 12px;'>
-                                        Systém pro správu rezervací a technických problémů
+                                        By Kryštof Tůma
+                                    </div>
+                                    <div style='margin-top: 8px; font-size: 11px; color: #6b7280;'>
+                                        IT systém pro správu incidentů a rezervací
+                                    </div>
+                                    <div style='margin-top: 4px; font-size: 10px; color: #9ca3af;'>
+                                        Tento email byl automaticky vygenerován dne <?= date('d.m.Y H:i') ?>
                                     </div>
                                 </div>
                             </div>
@@ -253,10 +316,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     Email: {$email}
                     Heslo: {$password}
                     
+                    UŽIVATELSKÝ MANUÁL
+                    ==================
+                    Pro lepší orientaci v systému si prosím prostudujte náš " . ($role === 'admin' ? 'administrátorský' : 'uživatelský') . " manuál:
+                    https://it.zskamenicka.cz/manual_" . ($role === 'admin' ? 'admin' : 'user') . ".pdf
+                    
                     Pro přihlášení navštivte: https://it.zskamenicka.cz
                     
                     ==========================================
-                    Rezervační systém ZŠ Kamenická
+                    Rezervo - IT systém pro správu incidentů a rezervací
+                    By Kryštof Tůma
+                    
+                    Tento email byl automaticky vygenerován dne " . date('d.m.Y H:i') . "
                     ";
                     
                     $mail->AltBody = $alt_body;
@@ -283,6 +354,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->bind_param("i", $id);
             $stmt->execute();
             $old_data = $stmt->get_result()->fetch_assoc();
+            
+            // Kontrola existence emailu (kromě aktuálního uživatele)
+            if ($old_data['email'] !== $email) {
+                $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+                $stmt->bind_param("si", $email, $id);
+                $stmt->execute();
+                if ($stmt->get_result()->num_rows > 0) {
+                    $error_message = "❌ Uživatel s tímto emailem již existuje";
+                    break;
+                }
+            }
+            
+            // Kontrola existence jména (kromě aktuálního uživatele)
+            if ($old_data['name'] !== $name) {
+                $stmt = $conn->prepare("SELECT id FROM users WHERE name = ? AND id != ?");
+                $stmt->bind_param("si", $name, $id);
+                $stmt->execute();
+                if ($stmt->get_result()->num_rows > 0) {
+                    $error_message = "❌ Uživatel s tímto jménem již existuje";
+                    break;
+                }
+            }
             
             if (!empty($_POST['password'])) {
                 $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
@@ -481,10 +574,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             
                             <div class='footer'>
                                 <div class='footer-content'>
-                                    <div class='footer-title'>Rezervační systém ZŠ Kamenická</div>
-                                    <div>Automaticky generovaná zpráva • " . date('d.m.Y H:i:s') . "</div>
+                                    <div class='footer-title'>Rezervo</div>
                                     <div style='margin-top: 12px; font-size: 12px;'>
-                                        Systém pro správu rezervací a technických problémů
+                                        By Kryštof Tůma
+                                    </div>
+                                    <div style='margin-top: 8px; font-size: 11px; color: #6b7280;'>
+                                        IT systém pro správu incidentů a rezervací
+                                    </div>
+                                    <div style='margin-top: 4px; font-size: 10px; color: #9ca3af;'>
+                                        Tento email byl automaticky vygenerován dne <?= date('d.m.Y H:i') ?>
                                     </div>
                                 </div>
                             </div>
@@ -511,7 +609,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     Pro přihlášení použijte své nové údaje na adrese: https://it.zskamenicka.cz
                     
                     ==========================================
-                    Rezervační systém ZŠ Kamenická
+                    Rezervo - IT systém pro správu incidentů a rezervací
+                    By Kryštof Tůma
+                    
+                    Tento email byl automaticky vygenerován dne " . date('d.m.Y H:i') . "
                     ";
                     
                     $mail->AltBody = $alt_body;
@@ -535,6 +636,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $user_data = $stmt->get_result()->fetch_assoc();
             
             if ($user_data) {
+                // Nejdřív smazat všechny rezervace uživatele
+                $stmt = $conn->prepare("DELETE FROM reservations WHERE user_id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                
+                // Pak smazat všechny technické problémy uživatele
+                $stmt = $conn->prepare("DELETE FROM technical_issues WHERE user_id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                
+                // Nakonec smazat uživatele
+                $conn->query("DELETE FROM users WHERE id = $id");
+                
                 // Odeslání emailu o smazání účtu
                 $mail = new PHPMailer(true);
                 try {
@@ -701,10 +815,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             
                             <div class='footer'>
                                 <div class='footer-content'>
-                                    <div class='footer-title'>Rezervační systém ZŠ Kamenická</div>
-                                    <div>Automaticky generovaná zpráva • " . date('d.m.Y H:i:s') . "</div>
+                                    <div class='footer-title'>Rezervo</div>
                                     <div style='margin-top: 12px; font-size: 12px;'>
-                                        Systém pro správu rezervací a technických problémů
+                                        By Kryštof Tůma
+                                    </div>
+                                    <div style='margin-top: 8px; font-size: 11px; color: #6b7280;'>
+                                        IT systém pro správu incidentů a rezervací
+                                    </div>
+                                    <div style='margin-top: 4px; font-size: 10px; color: #9ca3af;'>
+                                        Tento email byl automaticky vygenerován dne <?= date('d.m.Y H:i') ?>
                                     </div>
                                 </div>
                             </div>
@@ -730,7 +849,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     kontaktujte prosím administrátora systému.
                     
                     ==========================================
-                    Rezervační systém ZŠ Kamenická
+                    Rezervo - IT systém pro správu incidentů a rezervací
+                    By Kryštof Tůma
+                    
+                    Tento email byl automaticky vygenerován dne " . date('d.m.Y H:i') . "
                     ";
                     
                     $mail->AltBody = $alt_body;
@@ -741,7 +863,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             
-            $conn->query("DELETE FROM users WHERE id = $id");
             $success_message = "✅ Uživatel byl úspěšně smazán";
             break;
     }
@@ -754,7 +875,7 @@ $users = $conn->query("SELECT * FROM users");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin</title>
+    <title>Rezervo - Správa uživatelů</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <style>
@@ -865,6 +986,20 @@ $users = $conn->query("SELECT * FROM users");
     <div class="container mt-4">
         <h2>Správa uživatelů</h2>
         
+        <?php if (isset($success_message)): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?= $success_message ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (isset($error_message)): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?= $error_message ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
         <div class="mb-4">
             <h4>Nový uživatel</h4>
             <form method="post" class="row g-3">
@@ -946,3 +1081,9 @@ $users = $conn->query("SELECT * FROM users");
     </script>
 </body>
 </html>
+
+<footer class="footer mt-auto py-3 bg-light">
+    <div class="container text-center">
+        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
+    </div>
+</footer>

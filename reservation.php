@@ -55,6 +55,274 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
                 if ($stmt->execute()) {
                     $success = "Rezervace úspěšně vytvořena";
+                    
+                    // Odeslání emailu
+                    require 'vendor/autoload.php';
+                    $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+                    try {
+                        $mail_config = require 'config.php';
+                        
+                        $mail->isSMTP();
+                        $mail->Host = $mail_config['smtp']['host'];
+                        $mail->SMTPAuth = true;
+                        $mail->Username = $mail_config['smtp']['username'];
+                        $mail->Password = $mail_config['smtp']['password'];
+                        $mail->SMTPSecure = $mail_config['smtp']['encryption'];
+                        $mail->Port = $mail_config['smtp']['port'];
+                        $mail->CharSet = $mail_config['smtp']['charset'];
+                        
+                        $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
+                        $mail->addAddress($_SESSION['email'], $_SESSION['name']);
+                        
+                        $mail->isHTML(true);
+                        $mail->Subject = "✅ Rezervace byla vytvořena";
+                        
+                        // Získání informací o zařízení
+                        $stmt = $conn->prepare("SELECT device_name FROM devices WHERE id = ?");
+                        $stmt->bind_param("i", $device_id);
+                        $stmt->execute();
+                        $device_name = $stmt->get_result()->fetch_assoc()['device_name'];
+                        
+                        // Získání informací o hodině
+                        $stmt = $conn->prepare("SELECT hour_name FROM hours WHERE hour_number = ?");
+                        $stmt->bind_param("i", $hour);
+                        $stmt->execute();
+                        $hour_name = $stmt->get_result()->fetch_assoc()['hour_name'];
+                        
+                        $message = "
+                        <!DOCTYPE html>
+                        <html lang='cs'>
+                        <head>
+                            <meta charset='UTF-8'>
+                            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                            <title>Rezervace byla vytvořena</title>
+                            <style>
+                                * {
+                                    margin: 0;
+                                    padding: 0;
+                                    box-sizing: border-box;
+                                }
+                                
+                                body {
+                                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                    line-height: 1.6;
+                                    color: #333333;
+                                    background-color: #ffffff;
+                                }
+                                
+                                .email-container {
+                                    max-width: 600px;
+                                    margin: 20px auto;
+                                    background: #ffffff;
+                                    border-radius: 8px;
+                                    overflow: hidden;
+                                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                                    border: 1px solid #e5e7eb;
+                                }
+                                
+                                .header {
+                                    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                                    color: white;
+                                    padding: 24px;
+                                    text-align: center;
+                                }
+                                
+                                .logo-section {
+                                    width: 100%;
+                                    margin-bottom: 16px;
+                                }
+                                
+                                .logo {
+                                    width: 100%;
+                                    max-width: 300px;
+                                    height: auto;
+                                    margin: 0 auto;
+                                    display: block;
+                                }
+                                
+                                .company-info {
+                                    margin-top: 16px;
+                                }
+                                
+                                .company-info h1 {
+                                    font-size: 20px;
+                                    font-weight: 600;
+                                    margin-bottom: 4px;
+                                }
+                                
+                                .company-info p {
+                                    font-size: 14px;
+                                    opacity: 0.9;
+                                }
+                                
+                                .content {
+                                    padding: 24px;
+                                }
+                                
+                                .welcome-section {
+                                    margin-bottom: 24px;
+                                }
+                                
+                                .welcome-text {
+                                    font-size: 16px;
+                                    color: #333333;
+                                    margin-bottom: 16px;
+                                }
+                                
+                                .reservation-box {
+                                    background: #f8fafc;
+                                    border: 1px solid #e5e7eb;
+                                    border-radius: 6px;
+                                    padding: 16px;
+                                    margin-bottom: 24px;
+                                }
+                                
+                                .reservation-title {
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                    color: #4b5563;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.05em;
+                                    margin-bottom: 12px;
+                                }
+                                
+                                .reservation-item {
+                                    margin-bottom: 12px;
+                                }
+                                
+                                .reservation-label {
+                                    font-size: 13px;
+                                    color: #4b5563;
+                                    margin-bottom: 4px;
+                                }
+                                
+                                .reservation-value {
+                                    font-size: 15px;
+                                    font-weight: 600;
+                                    color: #111827;
+                                    background: #ffffff;
+                                    padding: 8px 12px;
+                                    border-radius: 4px;
+                                    border: 1px solid #e5e7eb;
+                                }
+
+                                .timestamp {
+                                    font-size: 12px;
+                                    color: #6b7280;
+                                    margin-top: 8px;
+                                    text-align: right;
+                                }
+                                
+                                .footer {
+                                    background: #1f2937;
+                                    color: #9ca3af;
+                                    padding: 24px;
+                                    text-align: center;
+                                }
+                                
+                                .footer-content {
+                                    font-size: 13px;
+                                    line-height: 1.5;
+                                }
+                                
+                                .footer-title {
+                                    color: white;
+                                    font-weight: 600;
+                                    margin-bottom: 8px;
+                                    font-size: 15px;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class='email-container'>
+                                <div class='header'>
+                                    <div class='logo-section'>
+                                        <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
+                                        <div class='company-info'>
+                                            <h1>Rezervo</h1>
+                                            <p>ZŠ Kamenická</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class='content'>
+                                    <div class='welcome-section'>
+                                        <div class='welcome-text'>
+                                            Vážený/á {$_SESSION['name']},<br><br>
+                                            vaše rezervace byla úspěšně vytvořena.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class='reservation-box'>
+                                        <div class='reservation-title'>Detaily rezervace</div>
+                                        <div class='reservation-item'>
+                                            <div class='reservation-label'>Zařízení</div>
+                                            <div class='reservation-value'>{$device_name}</div>
+                                        </div>
+                                        <div class='reservation-item'>
+                                            <div class='reservation-label'>Datum</div>
+                                            <div class='reservation-value'>" . date('d.m.Y', strtotime($date)) . "</div>
+                                        </div>
+                                        <div class='reservation-item'>
+                                            <div class='reservation-label'>Hodina</div>
+                                            <div class='reservation-value'>{$hour_name}</div>
+                                        </div>
+                                        <div class='reservation-item'>
+                                            <div class='reservation-label'>Počet kusů</div>
+                                            <div class='reservation-value'>{$quantity}</div>
+                                        </div>
+                                        <div class='timestamp'>
+                                            Rezervace vytvořena: " . date('d.m.Y H:i:s') . "
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class='footer'>
+                                    <div class='footer-content'>
+                                        <div class='footer-title'>Rezervo</div>
+                                        <div style='margin-top: 12px; font-size: 12px;'>
+                                            By Kryštof Tůma
+                                        </div>
+                                        <div style='margin-top: 8px; font-size: 11px; color: #6b7280;'>
+                                            IT systém pro správu incidentů a rezervací
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        ";
+                        
+                        $mail->Body = $message;
+                        
+                        // Alternativní textová verze
+                        $alt_body = "
+                        Rezervační systém ZŠ Kamenická - Rezervace byla vytvořena
+                        ==========================================
+                        
+                        Vážený/á {$_SESSION['name']},
+                        
+                        vaše rezervace byla úspěšně vytvořena.
+                        
+                        DETAILY REZERVACE
+                        ===============
+                        Zařízení: {$device_name}
+                        Datum: " . date('d.m.Y', strtotime($date)) . "
+                        Hodina: {$hour_name}
+                        Počet kusů: {$quantity}
+                        Rezervace vytvořena: " . date('d.m.Y H:i:s') . "
+                        
+                        ==========================================
+                        Rezervo - IT systém pro správu incidentů a rezervací
+                        By Kryštof Tůma
+                        ";
+                        
+                        $mail->AltBody = $alt_body;
+                        
+                        $mail->send();
+                    } catch (Exception $e) {
+                        $error = "Chyba při odesílání emailu: {$mail->ErrorInfo}";
+                    }
                 } else {
                     $error = "Chyba při vytváření rezervace";
                 }
@@ -71,7 +339,8 @@ $edit_reservation = null;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nová rezervace</title>
+    <title>Rezervo - Rezervace zařízení</title>
+    <link rel="icon" type="image/avif" href="https://zskamenicka.cz/wp-content/uploads/2025/06/ChatGPT-Image-9.-6.-2025-22_07_53.avif">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <style>
@@ -397,7 +666,7 @@ $edit_reservation = null;
                                             Rezervovat
                                         </button>
                                     <?php else: ?>
-                                        <button type="button" class="btn btn-secondary btn-sm" disabled>Nedostupné</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" disabled>Nedostupné</button>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -450,7 +719,6 @@ $edit_reservation = null;
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="auto_refresh.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const availabilityTable = document.getElementById('availability-table');
@@ -512,5 +780,16 @@ $edit_reservation = null;
             });
         });
     </script>
+    <script>
+        // Automatické obnovení stránky každou minutu
+        setInterval(function() {
+            window.location.reload();
+        }, 60000); // 60000 ms = 1 minuta
+    </script>
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
+        </div>
+    </footer>
 </body>
 </html>
