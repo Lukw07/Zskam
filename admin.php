@@ -618,7 +618,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $mail->AltBody = $alt_body;
                 
                     $mail->send();
-                    $success_message = "✅ Údaje byly úspěšně aktualizovány a odeslán email s notifikací";
+                    $success_message = "✅ Údaje byly úspěšně aktualizovány a odeslán email s oznámením";
                     
                 } catch (Exception $e) {
                     $error_message = "❌ Chyba při odesílání emailu: {$mail->ErrorInfo}";
