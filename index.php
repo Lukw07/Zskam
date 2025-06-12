@@ -410,7 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Footer -->
                     <div class='footer'>
                         <div class='footer-content'>
-                            <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.png' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                            <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi_white.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                             <div style='margin-top: 12px; font-size: 12px;'>
                                 By Kryštof Tůma
                             </div>

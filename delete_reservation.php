@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservation_id'])) {
                                     </ul>
                                 </div>
                                 <div class='footer'>
-                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi_white.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                                     <div style='margin-top: 5px;'>By Kryštof Tůma</div>
                                 </div>
                             </div>

@@ -83,12 +83,12 @@ $devices_data = $conn->query("
                 margin-bottom: 1rem;
                 text-align: center;
             }
-
+            
             .stat-card h4 {
                 font-size: 1.5rem;
                 margin-bottom: 0.5rem;
             }
-
+            
             .stat-card p {
                 font-size: 0.9rem;
                 margin-bottom: 0;
@@ -98,7 +98,7 @@ $devices_data = $conn->query("
             canvas {
                 max-height: 250px;
             }
-
+            
             /* Úprava řádků */
             .row {
                 margin-bottom: 0.5rem;
@@ -112,7 +112,7 @@ $devices_data = $conn->query("
             .col-md-3 {
                 margin-bottom: 1rem;
             }
-
+            
             /* Úprava nadpisů grafů */
             .chart-title {
                 font-size: 1rem;
@@ -131,50 +131,7 @@ $devices_data = $conn->query("
     
     <div class="container mt-4">
         <h2>Statistiky</h2>
-
-        <div class="row">
-            <!-- Statistiky rezervací -->
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h3 class="card-title">Statistiky rezervací</h3>
-                        <canvas id="reservationsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Statistiky technických problémů -->
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h3 class="card-title">Statistiky technických problémů</h3>
-                        <canvas id="issuesChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Nejaktivnější uživatelé -->
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h3 class="card-title">Nejaktivnější uživatelé</h3>
-                        <canvas id="usersChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Nejpopulárnější zařízení -->
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h3 class="card-title">Nejpopulárnější zařízení</h3>
-                        <canvas id="devicesChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Detailní statistiky -->
+        
         <div class="row">
             <div class="col-12 mb-4">
                 <div class="card">
@@ -229,7 +186,50 @@ $devices_data = $conn->query("
                 </div>
             </div>
         </div>
-    </div>
+        </div>
+        <div class="row">
+            <!-- Statistiky rezervací -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">Statistiky rezervací</h3>
+                        <canvas id="reservationsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiky technických problémů -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">Statistiky technických problémů</h3>
+                        <canvas id="issuesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nejaktivnější uživatelé -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">Nejaktivnější uživatelé</h3>
+                        <canvas id="usersChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nejpopulárnější zařízení -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">Nejpopulárnější zařízení</h3>
+                        <canvas id="devicesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailní statistiky -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>

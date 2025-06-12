@@ -115,5 +115,7 @@ $devices = $conn->query("SELECT * FROM devices");
             setupAutoRefresh('devices-content', 'admin_devices.php', 60000);
         });
     </script>
+    <?php require_once 'footer.php'; ?>
+    
 </body>
 </html> 

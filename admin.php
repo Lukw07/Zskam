@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                     <p>Doporučujeme změnit si heslo po prvním přihlášení.</p>
                                 </div>
                                 <div class='footer'>
-                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi_white.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                                     <div style='margin-top: 5px;'>By Kryštof Tůma</div>
                                 </div>
                             </div>
@@ -353,7 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             
                             <div class='footer'>
                                 <div class='footer-content'>
-                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi_white.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                                     <div style='margin-top: 12px; font-size: 12px;'>
                                         By Kryštof Tůma
                                     </div>
@@ -570,7 +570,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             
                             <div class='footer'>
                                 <div class='footer-content'>
-                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi_white.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                                     <div style='margin-top: 12px; font-size: 12px;'>
                                         By Kryštof Tůma
                                     </div>
@@ -828,10 +828,4 @@ $users = $conn->query("SELECT * FROM users");
     </script>
 </body>
 </html>
-
-<footer class="footer mt-auto py-3 bg-light">
-    <div class="container text-center">
-        <img src="logo_bezpozadi.png" alt="Logo školy" style="height: 100px; margin-bottom: 15px; object-fit: contain;">
-        <div><span class="text-muted">Rezervo by Kryštof Tůma 2025</span></div>
-    </div>
-</footer>
+<?php require_once 'footer.php'; ?>
