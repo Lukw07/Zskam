@@ -64,273 +64,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 
                     // Obsah
                     $mail->isHTML(true);
-                    $mail->Subject = "Přístupové údaje - Rezervační systém ZŠ Kamenická";
+                    $mail->Subject = "Vítejte v Rezervo";
                     
                     $message = "
-                    <!DOCTYPE html>
-                    <html lang='cs'>
-                    <head>
-                        <meta charset='UTF-8'>
-                        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                        <title>Přístupové údaje</title>
-                        <style>
-                            * {
-                                margin: 0;
-                                padding: 0;
-                                box-sizing: border-box;
-                            }
-                            
-                            body {
-                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                                line-height: 1.6;
-                                color: #1f2937;
-                                background-color: #f8fafc;
-                            }
-                            
-                            .email-container {
-                                max-width: 600px;
-                                margin: 20px auto;
-                                background: #ffffff;
-                                border-radius: 8px;
-                                overflow: hidden;
-                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                                border: 1px solid #e5e7eb;
-                            }
-                            
-                            .header {
-                                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                                color: white;
-                                padding: 24px;
-                                text-align: center;
-                            }
-                            
-                            .logo-section {
-                                width: 100%;
-                                margin-bottom: 16px;
-                            }
-                            
-                            .logo {
-                                width: 100%;
-                                max-width: 300px;
-                                height: auto;
-                                margin: 0 auto;
-                                display: block;
-                            }
-                            
-                            .company-info {
-                                margin-top: 16px;
-                            }
-                            
-                            .company-info h1 {
-                                font-size: 20px;
-                                font-weight: 600;
-                                margin-bottom: 4px;
-                            }
-                            
-                            .company-info p {
-                                font-size: 14px;
-                                opacity: 0.9;
-                            }
-                            
-                            .content {
-                                padding: 24px;
-                            }
-                            
-                            .welcome-section {
-                                margin-bottom: 24px;
-                            }
-                            
-                            .welcome-text {
-                                font-size: 16px;
-                                color: #374151;
-                                margin-bottom: 16px;
-                            }
-                            
-                            .credentials-box {
-                                background: #f8fafc;
-                                border: 1px solid #e5e7eb;
-                                border-radius: 6px;
-                                padding: 16px;
-                                margin-bottom: 24px;
-                            }
-                            
-                            .credentials-title {
-                                font-size: 14px;
-                                font-weight: 600;
-                                color: #6b7280;
-                                text-transform: uppercase;
-                                letter-spacing: 0.05em;
-                                margin-bottom: 12px;
-                            }
-                            
-                            .credential-item {
-                                margin-bottom: 12px;
-                            }
-                            
-                            .credential-label {
-                                font-size: 13px;
-                                color: #6b7280;
-                                margin-bottom: 4px;
-                            }
-                            
-                            .credential-value {
-                                font-size: 15px;
-                                font-weight: 600;
-                                color: #111827;
-                                background: #ffffff;
-                                padding: 8px 12px;
-                                border-radius: 4px;
-                                border: 1px solid #e5e7eb;
-                            }
-
-                            .manual-section {
-                                background: #f0f9ff;
-                                border: 1px solid #bae6fd;
-                                border-radius: 6px;
-                                padding: 16px;
-                                margin-bottom: 24px;
-                            }
-
-                            .manual-title {
-                                font-size: 14px;
-                                font-weight: 600;
-                                color: #0369a1;
-                                text-transform: uppercase;
-                                letter-spacing: 0.05em;
-                                margin-bottom: 12px;
-                            }
-
-                            .manual-link {
-                                display: inline-block;
-                                background: #0284c7;
-                                color: white;
-                                padding: 8px 16px;
-                                border-radius: 4px;
-                                text-decoration: none;
-                                font-weight: 500;
-                                margin-top: 8px;
-                            }
-
-                            .manual-link:hover {
-                                background: #0369a1;
-                            }
-                            
-                            .footer {
-                                background: #1f2937;
-                                color: #9ca3af;
-                                padding: 24px;
-                                text-align: center;
-                            }
-                            
-                            .footer-content {
-                                font-size: 13px;
-                                line-height: 1.5;
-                            }
-                            
-                            .footer-title {
-                                color: white;
-                                font-weight: 600;
-                                margin-bottom: 8px;
-                                font-size: 15px;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class='email-container'>
-                            <div class='header'>
-                                <div class='logo-section'>
-                                    <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
-                                    <div class='company-info'>
-                                        <h1>Rezervační systém</h1>
-                                        <p>ZŠ Kamenická</p>
-                                    </div>
+                        <!DOCTYPE html>
+                        <html lang='cs'>
+                        <head>
+                            <meta charset='UTF-8'>
+                            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                            <title>Vítejte v Rezervo</title>
+                            <style>
+                                body { font-family: sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+                                .header { background-color: #f8f8f8; padding: 20px; text-align: center; border-bottom: 1px solid #eee; }
+                                .content { padding: 20px; }
+                                .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 0.9em; }
+                                .footer-title { font-weight: bold; margin-bottom: 5px; }
+                                .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class='container'>
+                                <div class='header'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/zskam.webp' alt='Logo školy' class='logo'>
+                                    <h2>Vítejte v Rezervo</h2>
+                                </div>
+                                <div class='content'>
+                                    <p>Vážený uživateli,</p>
+                                    <p>vítejte v systému Rezervo. Váš účet byl úspěšně vytvořen.</p>
+                                    <p>Vaše přihlašovací údaje:</p>
+                                    <ul>
+                                        <li>Email: {$email}</li>
+                                        <li>Heslo: {$password}</li>
+                                    </ul>
+                                    <p>Pro přihlášení použijte tento odkaz: <a href='http://localhost/zskam/index.php'>http://localhost/zskam/index.php</a></p>
+                                    <p>Doporučujeme změnit si heslo po prvním přihlášení.</p>
+                                </div>
+                                <div class='footer'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                                    <div style='margin-top: 5px;'>By Kryštof Tůma</div>
                                 </div>
                             </div>
-                            
-                            <div class='content'>
-                                <div class='welcome-section'>
-                                    <div class='welcome-text'>
-                                        Vážený/á {$name},<br><br>
-                                        byl vám vytvořen účet v rezervačním systému ZŠ Kamenická. Níže naleznete vaše přihlašovací údaje.
-                                    </div>
-                                </div>
-                                
-                                <div class='credentials-box'>
-                                    <div class='credentials-title'>Přístupové údaje</div>
-                                    <div class='credential-item'>
-                                        <div class='credential-label'>Email</div>
-                                        <div class='credential-value'>{$email}</div>
-                                    </div>
-                                    <div class='credential-item'>
-                                        <div class='credential-label'>Heslo</div>
-                                        <div class='credential-value'>{$password}</div>
-                                    </div>
-                                </div>
-
-                                <div class='manual-section'>
-                                    <div class='manual-title'>" . ($role === 'admin' ? 'Administrátorský manuál' : 'Uživatelský manuál') . "</div>
-                                    <p>Pro lepší orientaci v systému si prosím prostudujte náš " . ($role === 'admin' ? 'administrátorský' : 'uživatelský') . " manuál:</p>
-                                    <a href='https://zskamenicka.cz/wp-content/uploads/2025/06/README_" . ($role === 'admin' ? 'admin-2' : 'user') . ".pdf' class='manual-link'>
-                                        <i class='fas fa-book'></i> Stáhnout " . ($role === 'admin' ? 'administrátorský' : 'uživatelský') . " manuál
-                                    </a>
-                                </div>
-                                
-                                <div class='welcome-text'>
-                                    Pro přihlášení použijte tyto údaje na adrese:<br>
-                                    <a href='https://it.zskamenicka.cz' style='color: #2563eb;'>https://it.zskamenicka.cz</a>
-                                </div>
-                            </div>
-                            
-                            <div class='footer'>
-                                <div class='footer-content'>
-                                    <div class='footer-title'>Rezervo</div>
-                                    <div style='margin-top: 12px; font-size: 12px;'>
-                                        By Kryštof Tůma
-                                    </div>
-                                    <div style='margin-top: 8px; font-size: 11px; color: #6b7280;'>
-                                        IT systém pro správu incidentů a rezervací
-                                    </div>
-                                    <div style='margin-top: 4px; font-size: 10px; color: #9ca3af;'>
-                                        Tento email byl automaticky vygenerován dne <?= date('d.m.Y H:i') ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </body>
-                    </html>
+                        </body>
+                        </html>
                     ";
                 
                     $mail->Body = $message;
-                    
-                    // Alternativní textová verze
-                    $alt_body = "
-                    Rezervační systém ZŠ Kamenická - Přístupové údaje
-                    ==========================================
-                    
-                    Vážený/á {$name},
-                    
-                    byl vám vytvořen účet v rezervačním systému ZŠ Kamenická.
-                    
-                    PŘÍSTUPOVÉ ÚDAJE
-                    ===============
-                    Email: {$email}
-                    Heslo: {$password}
-                    
-                    UŽIVATELSKÝ MANUÁL
-                    ==================
-                    Pro lepší orientaci v systému si prosím prostudujte náš " . ($role === 'admin' ? 'administrátorský' : 'uživatelský') . " manuál:
-                    https://it.zskamenicka.cz/manual_" . ($role === 'admin' ? 'admin' : 'user') . ".pdf
-                    
-                    Pro přihlášení navštivte: https://it.zskamenicka.cz
-                    
-                    ==========================================
-                    Rezervo - IT systém pro správu incidentů a rezervací
-                    By Kryštof Tůma
-                    
-                    Tento email byl automaticky vygenerován dne " . date('d.m.Y H:i') . "
-                    ";
-                    
-                    $mail->AltBody = $alt_body;
                 
                     $mail->send();
                     $success_message = "✅ Uživatel byl úspěšně vytvořen a odeslán email s přihlašovacími údaji";
@@ -543,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <div class='email-container'>
                             <div class='header'>
                                 <div class='logo-section'>
-                                    <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/zskam.webp' alt='Logo školy' class='logo'>
                                     <div class='company-info'>
                                         <h1>Rezervační systém</h1>
                                         <p>ZŠ Kamenická</p>
@@ -574,7 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             
                             <div class='footer'>
                                 <div class='footer-content'>
-                                    <div class='footer-title'>Rezervo</div>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                                     <div style='margin-top: 12px; font-size: 12px;'>
                                         By Kryštof Tůma
                                     </div>
@@ -592,33 +371,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ";
                 
                     $mail->Body = $message;
-                    
-                    // Alternativní textová verze
-                    $alt_body = "
-                    Rezervační systém ZŠ Kamenická - Změna údajů
-                    ==========================================
-                    
-                    Vážený/á {$name},
-                    
-                    byly změněny údaje vašeho účtu v rezervačním systému ZŠ Kamenická.
-                    
-                    PROVEDENÉ ZMĚNY
-                    ===============
-                    " . implode("\n", $changes) . "
-                    
-                    Pro přihlášení použijte své nové údaje na adrese: https://it.zskamenicka.cz
-                    
-                    ==========================================
-                    Rezervo - IT systém pro správu incidentů a rezervací
-                    By Kryštof Tůma
-                    
-                    Tento email byl automaticky vygenerován dne " . date('d.m.Y H:i') . "
-                    ";
-                    
-                    $mail->AltBody = $alt_body;
                 
                     $mail->send();
-                    $success_message = "✅ Údaje byly úspěšně aktualizovány a odeslán email s oznámením";
+                    $success_message = "✅ Údaje byly úspěšně aktualizovány a odeslán email s notifikací";
                     
                 } catch (Exception $e) {
                     $error_message = "❌ Chyba při odesílání emailu: {$mail->ErrorInfo}";
@@ -791,7 +546,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <div class='email-container'>
                             <div class='header'>
                                 <div class='logo-section'>
-                                    <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/zskam.webp' alt='Logo školy' class='logo'>
                                     <div class='company-info'>
                                         <h1>Rezervační systém</h1>
                                         <p>ZŠ Kamenická</p>
@@ -815,7 +570,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             
                             <div class='footer'>
                                 <div class='footer-content'>
-                                    <div class='footer-title'>Rezervo</div>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                                     <div style='margin-top: 12px; font-size: 12px;'>
                                         By Kryštof Tůma
                                     </div>
@@ -833,29 +588,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ";
                 
                     $mail->Body = $message;
-                    
-                    // Alternativní textová verze
-                    $alt_body = "
-                    Rezervační systém ZŠ Kamenická - Smazání účtu
-                    ==========================================
-                    
-                    Vážený/á {$user_data['name']},
-                    
-                    váš účet v rezervačním systému ZŠ Kamenická byl smazán.
-                    
-                    DŮLEŽITÉ UPOZORNĚNÍ
-                    ==================
-                    Váš účet byl smazán z databáze. Pokud se domníváte, že k tomu došlo omylem, 
-                    kontaktujte prosím administrátora systému.
-                    
-                    ==========================================
-                    Rezervo - IT systém pro správu incidentů a rezervací
-                    By Kryštof Tůma
-                    
-                    Tento email byl automaticky vygenerován dne " . date('d.m.Y H:i') . "
-                    ";
-                    
-                    $mail->AltBody = $alt_body;
                 
                     $mail->send();
                 } catch (Exception $e) {
@@ -876,9 +608,40 @@ $users = $conn->query("SELECT * FROM users");
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rezervo - Správa uživatelů</title>
+    <link rel="icon" type="image/png" href="logo1.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <style>
+        /* Základní styly pro všechny zařízení */
+        .input-group {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .input-group > * {
+            width: 100%;
+            margin-bottom: 0.3rem;
+        }
+
+        .input-group .btn {
+            margin-top: 0.3rem;
+        }
+
+        .form-control-sm, .form-select-sm {
+            font-size: 0.9rem;
+            padding: 0.3rem 0.5rem;
+            margin-bottom: 0.3rem;
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            display: block;
+            width: 100%;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -915,22 +678,6 @@ $users = $conn->query("SELECT * FROM users");
             .table td, .table th {
                 padding: 0.5rem;
                 white-space: nowrap;
-            }
-
-            /* Úprava formulářových prvků v tabulce */
-            .form-control-sm, .form-select-sm {
-                font-size: 0.9rem;
-                padding: 0.3rem 0.5rem;
-                margin-bottom: 0.3rem;
-            }
-
-            /* Úprava tlačítek */
-            .btn-sm {
-                padding: 0.3rem 0.5rem;
-                font-size: 0.9rem;
-                margin-bottom: 0.3rem;
-                display: block;
-                width: 100%;
             }
 
             /* Úprava nadpisů */
@@ -1084,6 +831,7 @@ $users = $conn->query("SELECT * FROM users");
 
 <footer class="footer mt-auto py-3 bg-light">
     <div class="container text-center">
-        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
+        <img src="logo_bezpozadi.png" alt="Logo školy" style="height: 100px; margin-bottom: 15px; object-fit: contain;">
+        <div><span class="text-muted">Rezervo by Kryštof Tůma 2025</span></div>
     </div>
 </footer>

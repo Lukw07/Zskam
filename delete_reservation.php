@@ -62,105 +62,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservation_id'])) {
                         <head>
                             <meta charset='UTF-8'>
                             <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                            <title>Rezervace zrušena</title>
+                            <title>Zrušení rezervace</title>
                             <style>
-                                body {
-                                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                                    line-height: 1.6;
-                                    color: #1f2937;
-                                    background-color: #f8fafc;
-                                }
-                                .email-container {
-                                    max-width: 600px;
-                                    margin: 20px auto;
-                                    background: #ffffff;
-                                    border-radius: 8px;
-                                    overflow: hidden;
-                                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                                    border: 1px solid #e5e7eb;
-                                }
-                                .header {
-                                    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                                    color: white;
-                                    padding: 24px;
-                                    text-align: center;
-                                }
-                                .content {
-                                    padding: 24px;
-                                }
-                                .warning-box {
-                                    background: #fef2f2;
-                                    border: 1px solid #ef4444;
-                                    border-radius: 6px;
-                                    padding: 16px;
-                                    margin-bottom: 24px;
-                                }
-                                .warning-title {
-                                    color: #dc2626;
-                                    font-weight: 600;
-                                    margin-bottom: 8px;
-                                }
-                                .info-box {
-                                    background: #f8fafc;
-                                    border-radius: 6px;
-                                    padding: 16px;
-                                    margin-bottom: 16px;
-                                }
-                                .info-label {
-                                    font-size: 13px;
-                                    color: #6b7280;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.05em;
-                                    margin-bottom: 4px;
-                                }
-                                .info-value {
-                                    font-size: 15px;
-                                    font-weight: 600;
-                                    color: #1f2937;
-                                }
-                                .footer {
-                                    background: #1f2937;
-                                    color: #9ca3af;
-                                    padding: 24px;
-                                    text-align: center;
-                                }
+                                body { font-family: sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+                                .header { background-color: #f8f8f8; padding: 20px; text-align: center; border-bottom: 1px solid #eee; }
+                                .content { padding: 20px; }
+                                .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 0.9em; }
+                                .footer-title { font-weight: bold; margin-bottom: 5px; }
+                                .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
                             </style>
                         </head>
                         <body>
-                            <div class='email-container'>
+                            <div class='container'>
                                 <div class='header'>
-                                    <h1>Rezervace zrušena</h1>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/zskam.webp' alt='Logo školy' class='logo'>
+                                    <h2>Zrušení rezervace</h2>
                                 </div>
-                                
                                 <div class='content'>
-                                    <div class='warning-box'>
-                                        <div class='warning-title'>⚠️ Vaše rezervace byla zrušena</div>
-                                        <p>Administrátor zrušil vaši rezervaci. Podrobnosti naleznete níže.</p>
-                                    </div>
-                                    
-                                    <div class='info-box'>
-                                        <div class='info-label'>Zařízení</div>
-                                        <div class='info-value'>{$reservation['device_name']}</div>
-                                    </div>
-                                    
-                                    <div class='info-box'>
-                                        <div class='info-label'>Datum a čas</div>
-                                        <div class='info-value'>" . date('d.m.Y', strtotime($reservation['date'])) . " - " . 
-                                        date('H:i', strtotime($reservation['start_time'])) . " - " . 
-                                        date('H:i', strtotime($reservation['end_time'])) . "</div>
-                                    </div>
-                                    
-                                    <div class='info-box'>
-                                        <div class='info-label'>Počet kusů</div>
-                                        <div class='info-value'>{$reservation['quantity']} ks</div>
-                                    </div>
+                                    <p>Vážený uživateli,</p>
+                                    <p>Vaše rezervace byla úspěšně zrušena.</p>
+                                    <p>Detaily rezervace:</p>
+                                    <ul>
+                                        <li>Zařízení: {$reservation['device_name']}</li>
+                                        <li>Datum: " . date('d.m.Y', strtotime($reservation['date'])) . "</li>
+                                        <li>Čas: " . date('H:i', strtotime($reservation['start_time'])) . " - " . date('H:i', strtotime($reservation['end_time'])) . "</li>
+                                    </ul>
                                 </div>
-                                
                                 <div class='footer'>
-                                    <div>Rezervační systém ZŠ Kamenická</div>
-                                    <div style='margin-top: 8px; font-size: 12px;'>
-                                        Automaticky generovaná zpráva • " . date('d.m.Y H:i:s') . "
-                                    </div>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                                    <div style='margin-top: 5px;'>By Kryštof Tůma</div>
                                 </div>
                             </div>
                         </body>
@@ -169,6 +100,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservation_id'])) {
                     
                         $mail->Body = $message;
                         
+                        // Přidání loga jako přílohy (hlavička) - ODSTRANĚNO, POUŽITA URL
+                        // $mail->addEmbeddedImage('zskam.png', 'header_logo');
+                        
+                        // Přidání loga jako přílohy (patička) - ODSTRANĚNO, POUŽITA URL
+                        // $mail->addEmbeddedImage('logo_bezpozadi.png', 'footer_logo');
+                    
                         // Alternativní textová verze
                         $alt_body = "
                         Rezervační systém ZŠ Kamenická - Rezervace zrušena

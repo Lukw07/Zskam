@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $incident_id = sprintf('INC-%06d', $issue_id);
             
             // URL pro označení jako přečteno s ID incidentu
-            $mark_read_url = "https://it.zskamenicka.cz/mark_read.php?id=" . $issue_id;
+            $mark_read_url = "http://localhost/zskam/mark_read.php?id=" . $issue_id;
             
             $message = "
             <!DOCTYPE html>
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     .logo {
                         width: 100%;
-                        max-width: 300px;
+                        max-width: 150px;
                         height: auto;
                         margin: 0 auto;
                         display: block;
@@ -348,10 +348,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Header -->
                     <div class='header'>
                         <div class='logo-section'>
-                            <img src='https://zskamenicka.cz/wp-content/uploads/2024/11/z-kamenick-dn-ii-high-resolution-logo-transparent.png' alt='Logo školy' class='logo'>
+                            <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/zskam.png' alt='Logo školy' class='logo'>
                             <div class='company-info'>
-                                <h1>Rezervo</h1>
-                                <p>IT Support System</p>
+                                <h1>IT Support</h1>
+                                <p>ZŠ Kamenická</p>
                             </div>
                         </div>
                     </div>
@@ -410,7 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Footer -->
                     <div class='footer'>
                         <div class='footer-content'>
-                            <div class='footer-title'>Rezervo</div>
+                            <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.png' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                             <div style='margin-top: 12px; font-size: 12px;'>
                                 By Kryštof Tůma
                             </div>
@@ -455,8 +455,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ====================
         {$mark_read_url}
         
-        ==========================================
-        Rezervo - Automatická notifikace
         By Kryštof Tůma
             ";
             
@@ -501,6 +499,7 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="60">
     <title>Rezervo - Přihlášení</title>
+    <link rel="icon" type="image/png" href="logo1.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
@@ -757,11 +756,6 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <?php include 'footer.php'; ?>
 </body>
 </html>
-
-<footer class="footer mt-auto py-3 bg-light">
-    <div class="container text-center">
-        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
-    </div>
-</footer>

@@ -103,11 +103,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 .content { padding: 20px; }
                                 .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 0.9em; }
                                 .footer-title { font-weight: bold; margin-bottom: 5px; }
+                                .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
                             </style>
                         </head>
                         <body>
                             <div class='container'>
                                 <div class='header'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/zskam.webp' alt='Logo školy' class='logo'>
                                     <h2>Změna emailové adresy</h2>
                                 </div>
                                 <div class='content'>
@@ -115,13 +117,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                     <p>Pokud jste tuto změnu neprováděli vy, kontaktujte prosím administrátora.</p>
                                 </div>
                                 <div class='footer'>
-                                    <div class='footer-title'>Rezervo</div>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi-1.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
                                     <div style='margin-top: 5px;'>By Kryštof Tůma</div>
                                 </div>
                             </div>
                         </body>
                         </html>
                     ";
+                    
+                    // Přidání loga jako přílohy (hlavička) - ODSTRANĚNO, POUŽITA URL
+                    // $mail->addEmbeddedImage('zskam.png', 'header_logo');
+                    
+                    // Přidání loga jako přílohy (patička) - ODSTRANĚNO, POUŽITA URL
+                    // $mail->addEmbeddedImage('logo_bezpozadi.png', 'footer_logo');
                     
                     // Alternativní textová verze
                     $mail->AltBody = "
@@ -132,8 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         
                         Pokud jste tuto změnu neprováděli vy, kontaktujte prosím administrátora.
                         
-                        ========================
-                        Rezervo - Automatická notifikace
                         By Kryštof Tůma
                     ";
                     
@@ -161,7 +167,7 @@ $user = $stmt->get_result()->fetch_assoc();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rezervo - Nastavení</title>
-    <link rel="icon" type="image/avif" href="https://zskamenicka.cz/wp-content/uploads/2025/06/ChatGPT-Image-9.-6.-2025-22_07_53.avif">
+    <link rel="icon" type="image/png" href="logo1.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
@@ -309,11 +315,6 @@ $user = $stmt->get_result()->fetch_assoc();
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <?php include 'footer.php'; ?>
 </body>
-</html>
-
-<footer class="footer mt-auto py-3 bg-light">
-    <div class="container text-center">
-        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
-    </div>
-</footer> 
+</html> 

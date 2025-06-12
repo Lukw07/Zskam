@@ -3,6 +3,43 @@ require_once 'auth.php';
 require_once 'db.php';
 redirect_if_not_logged_in();
 if (!is_admin()) die("Přístup odepřen");
+
+// Načtení dat pro grafy
+// Statistiky rezervací za posledních 7 dní
+$reservations_data = $conn->query("
+    SELECT DATE(date) as date, COUNT(*) as count 
+    FROM reservations 
+    WHERE date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+    GROUP BY DATE(date)
+    ORDER BY date
+")->fetch_all(MYSQLI_ASSOC);
+
+// Statistiky technických problémů podle stavu
+$issues_data = $conn->query("
+    SELECT status, COUNT(*) as count 
+    FROM technical_issues 
+    GROUP BY status
+")->fetch_all(MYSQLI_ASSOC);
+
+// Nejaktivnější uživatelé (top 5)
+$users_data = $conn->query("
+    SELECT u.name, COUNT(r.id) as count 
+    FROM users u 
+    LEFT JOIN reservations r ON u.id = r.user_id 
+    GROUP BY u.id 
+    ORDER BY count DESC 
+    LIMIT 5
+")->fetch_all(MYSQLI_ASSOC);
+
+// Nejpopulárnější zařízení (top 5)
+$devices_data = $conn->query("
+    SELECT d.device_name, COUNT(r.id) as count 
+    FROM devices d 
+    LEFT JOIN reservations r ON d.id = r.device_id 
+    GROUP BY d.id 
+    ORDER BY count DESC 
+    LIMIT 5
+")->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="cs">
@@ -10,7 +47,7 @@ if (!is_admin()) die("Přístup odepřen");
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rezervo - Statistiky</title>
-    <link rel="icon" type="image/avif" href="https://zskamenicka.cz/wp-content/uploads/2025/06/ChatGPT-Image-9.-6.-2025-22_07_53.avif">
+    <link rel="icon" type="image/png" href="logo1.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -196,71 +233,17 @@ if (!is_admin()) die("Přístup odepřen");
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Inicializace grafů
         document.addEventListener('DOMContentLoaded', function() {
-            // Data pro grafy
-            <?php
-            // Data pro rezervace za posledních 7 dní
-            $reservations_data = $conn->query("SELECT DATE(date) as date, COUNT(*) as count 
-                FROM reservations 
-                WHERE date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                GROUP BY DATE(date)
-                ORDER BY date");
-            $reservations_labels = [];
-            $reservations_counts = [];
-            while ($row = $reservations_data->fetch_assoc()) {
-                $reservations_labels[] = date('d.m.', strtotime($row['date']));
-                $reservations_counts[] = $row['count'];
-            }
-
-            // Data pro technické problémy podle naléhavosti
-            $issues_data = $conn->query("SELECT urgency, COUNT(*) as count 
-                FROM technical_issues 
-                GROUP BY urgency");
-            $issues_labels = [];
-            $issues_counts = [];
-            while ($row = $issues_data->fetch_assoc()) {
-                $issues_labels[] = $row['urgency'];
-                $issues_counts[] = $row['count'];
-            }
-
-            // Data pro nejaktivnější uživatele
-            $users_data = $conn->query("SELECT u.name, COUNT(*) as count 
-                FROM reservations r
-                JOIN users u ON r.user_id = u.id
-                GROUP BY r.user_id
-                ORDER BY count DESC
-                LIMIT 5");
-            $users_labels = [];
-            $users_counts = [];
-            while ($row = $users_data->fetch_assoc()) {
-                $users_labels[] = $row['name'];
-                $users_counts[] = $row['count'];
-            }
-
-            // Data pro nejpopulárnější zařízení
-            $devices_data = $conn->query("SELECT d.device_name, COUNT(*) as count 
-                FROM reservations r
-                JOIN devices d ON r.device_id = d.id
-                GROUP BY r.device_id
-                ORDER BY count DESC
-                LIMIT 5");
-            $devices_labels = [];
-            $devices_counts = [];
-            while ($row = $devices_data->fetch_assoc()) {
-                $devices_labels[] = $row['device_name'];
-                $devices_counts[] = $row['count'];
-            }
-            ?>
-
-            // Graf rezervací
+            // Statistiky rezervací
             new Chart(document.getElementById('reservationsChart'), {
                 type: 'line',
                 data: {
-                    labels: <?= json_encode($reservations_labels) ?>,
+                    labels: <?= json_encode(array_column($reservations_data, 'date')) ?>,
                     datasets: [{
                         label: 'Počet rezervací',
-                        data: <?= json_encode($reservations_counts) ?>,
-                        borderColor: '#2563eb',
+                        data: <?= json_encode(array_column($reservations_data, 'count')) ?>,
+                        borderColor: 'rgb(75, 192, 192)',
                         tension: 0.1
                     }]
                 },
@@ -269,20 +252,48 @@ if (!is_admin()) die("Přístup odepřen");
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Rezervace za posledních 7 dní'
+                            text: 'Vývoj rezervací v čase'
                         }
                     }
                 }
             });
 
-            // Graf technických problémů
+            // Statistiky technických problémů
             new Chart(document.getElementById('issuesChart'), {
+                type: 'bar',
+                data: {
+                    labels: <?= json_encode(array_column($issues_data, 'status')) ?>,
+                    datasets: [{
+                        label: 'Počet problémů',
+                        data: <?= json_encode(array_column($issues_data, 'count')) ?>,
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Technické problémy podle stavu'
+                        }
+                    }
+                }
+            });
+
+            // Nejaktivnější uživatelé
+            new Chart(document.getElementById('usersChart'), {
                 type: 'pie',
                 data: {
-                    labels: <?= json_encode($issues_labels) ?>,
+                    labels: <?= json_encode(array_column($users_data, 'name')) ?>,
                     datasets: [{
-                        data: <?= json_encode($issues_counts) ?>,
-                        backgroundColor: ['#0dcaf0', '#ffc107', '#dc3545']
+                        data: <?= json_encode(array_column($users_data, 'count')) ?>,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.5)',
+                            'rgba(54, 162, 235, 0.5)',
+                            'rgba(255, 206, 86, 0.5)',
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(153, 102, 255, 0.5)'
+                        ]
                     }]
                 },
                 options: {
@@ -290,43 +301,26 @@ if (!is_admin()) die("Přístup odepřen");
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Technické problémy podle naléhavosti'
+                            text: 'Nejaktivnější uživatelé'
                         }
                     }
                 }
             });
 
-            // Graf nejaktivnějších uživatelů
-            new Chart(document.getElementById('usersChart'), {
-                type: 'bar',
-                data: {
-                    labels: <?= json_encode($users_labels) ?>,
-                    datasets: [{
-                        label: 'Počet rezervací',
-                        data: <?= json_encode($users_counts) ?>,
-                        backgroundColor: '#2563eb'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Top 5 nejaktivnějších uživatelů'
-                        }
-                    }
-                }
-            });
-
-            // Graf nejpopulárnějších zařízení
+            // Nejpopulárnější zařízení
             new Chart(document.getElementById('devicesChart'), {
-                type: 'bar',
+                type: 'doughnut',
                 data: {
-                    labels: <?= json_encode($devices_labels) ?>,
+                    labels: <?= json_encode(array_column($devices_data, 'device_name')) ?>,
                     datasets: [{
-                        label: 'Počet rezervací',
-                        data: <?= json_encode($devices_counts) ?>,
-                        backgroundColor: '#16a34a'
+                        data: <?= json_encode(array_column($devices_data, 'count')) ?>,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.5)',
+                            'rgba(54, 162, 235, 0.5)',
+                            'rgba(255, 206, 86, 0.5)',
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(153, 102, 255, 0.5)'
+                        ]
                     }]
                 },
                 options: {
@@ -334,18 +328,13 @@ if (!is_admin()) die("Přístup odepřen");
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Top 5 nejpopulárnějších zařízení'
+                            text: 'Nejpopulárnější zařízení'
                         }
                     }
                 }
             });
         });
     </script>
+    <?php include 'footer.php'; ?>
 </body>
-</html>
-
-<footer class="footer mt-auto py-3 bg-light">
-    <div class="container text-center">
-        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
-    </div>
-</footer> 
+</html> 

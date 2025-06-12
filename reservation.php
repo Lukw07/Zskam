@@ -76,7 +76,7 @@ $edit_reservation = null;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rezervo - Rezervace zařízení</title>
-    <link rel="icon" type="image/avif" href="https://zskamenicka.cz/wp-content/uploads/2025/06/ChatGPT-Image-9.-6.-2025-22_07_53.avif">
+    <link rel="icon" type="image/png" href="logo1.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <style>
@@ -173,15 +173,16 @@ $edit_reservation = null;
             .quantity-selector {
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
-                margin: 0.5rem 0;
+                gap: 1rem;
+                margin: 1rem 0;
+                justify-content: center;
             }
             
             .quantity-btn {
                 width: 40px;
                 height: 40px;
                 border-radius: 50%;
-                border: 2px solid #007bff;
+                border: 3px solid #007bff;
                 background: white;
                 color: #007bff;
                 font-weight: bold;
@@ -191,26 +192,33 @@ $edit_reservation = null;
                 justify-content: center;
                 cursor: pointer;
                 transition: all 0.2s;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             }
             
             .quantity-btn:hover {
                 background: #007bff;
                 color: white;
+                transform: scale(1.05);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             }
             
             .quantity-btn:disabled {
                 opacity: 0.5;
                 cursor: not-allowed;
+                transform: none;
+                box-shadow: none;
             }
             
             .quantity-display {
                 min-width: 60px;
                 text-align: center;
-                font-size: 1.1rem;
+                font-size: 1.2rem;
                 padding: 0.5rem;
-                border: 1px solid #ced4da;
-                border-radius: 0.25rem;
+                border: 2px solid #ced4da;
+                border-radius: 0.5rem;
                 background: #f8f9fa;
+                font-weight: bold;
+                box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
             }
             
             /* Úprava tlačítek */
@@ -605,10 +613,6 @@ $edit_reservation = null;
             window.location.reload();
         }, 60000); // 60000 ms = 1 minuta
     </script>
-    <footer class="footer mt-auto py-3 bg-light">
-        <div class="container text-center">
-            <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
-        </div>
-    </footer>
+    <?php include 'footer.php'; ?>
 </body>
 </html>

@@ -1,11 +1,6 @@
 <?php
 require_once 'auth.php';
 require_once 'db.php';
-require 'vendor/autoload.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-use PHPMailer\PHPMailer\SMTP;
 
 redirect_if_not_logged_in();
 if (!is_admin()) die("Přístup odepřen");
@@ -13,16 +8,18 @@ if (!is_admin()) die("Přístup odepřen");
 // Zpracování změny stavu
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update_status') {
-    $issue_id = intval($_POST['issue_id']);
-    $new_status = $conn->real_escape_string($_POST['status']);
-    
-    $stmt = $conn->prepare("UPDATE technical_issues SET status = ? WHERE id = ?");
-    $stmt->bind_param("si", $new_status, $issue_id);
-    
-    if ($stmt->execute()) {
-        $success_message = "Stav byl úspěšně aktualizován";
-    } else {
-        $error_message = "Chyba při aktualizaci stavu";
+        $issue_id = intval($_POST['issue_id']);
+        $new_status = $conn->real_escape_string($_POST['new_status']);
+        $admin_note = $conn->real_escape_string($_POST['admin_note']);
+        
+        // Aktualizace stavu v databázi
+        $stmt = $conn->prepare("UPDATE technical_issues SET status = ?, admin_note = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $new_status, $admin_note, $issue_id);
+        
+        if ($stmt->execute()) {
+            $success_message = "Stav incidentu byl úspěšně aktualizován";
+        } else {
+            $error_message = "Chyba při aktualizaci stavu incidentu";
         }
     } elseif ($_POST['action'] === 'delete') {
         $issue_id = intval($_POST['issue_id']);
@@ -43,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rezervo - Správa technických problémů</title>
-    <link rel="icon" type="image/avif" href="https://zskamenicka.cz/wp-content/uploads/2025/06/ChatGPT-Image-9.-6.-2025-22_07_53.avif">
+    <title>Rezervo - Technické problémy</title>
+    <link rel="icon" type="image/png" href="logo1.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <style>
@@ -347,25 +344,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         </thead>
                         <tbody>
                             <?php
+                            // Resetování proměnných pro druhý dotaz
+                            $params2 = array();
+                            $types2 = "";
+                            
                             // Sestavení SQL dotazu pro vyřešené problémy
-                            $sql = "SELECT ti.*, u.name 
-                                   FROM technical_issues ti 
-                                   JOIN users u ON ti.user_id = u.id 
-                                   WHERE ti.status = 'vyřešeno'";
+                            $sql2 = "SELECT ti.*, u.name 
+                                    FROM technical_issues ti 
+                                    JOIN users u ON ti.user_id = u.id 
+                                    WHERE ti.status = 'vyřešeno'";
                             
                             if (!empty($_GET['date_from'])) {
-                                $sql .= " AND DATE(ti.created_at) >= ?";
-                                $params[] = $_GET['date_from'];
-                                $types .= "s";
+                                $sql2 .= " AND DATE(ti.created_at) >= ?";
+                                $params2[] = $_GET['date_from'];
+                                $types2 .= "s";
                             }
 
                             // Přidání řazení
                             switch ($sort) {
                                 case 'created_at_asc':
-                                    $sql .= " ORDER BY ti.created_at ASC";
+                                    $sql2 .= " ORDER BY ti.created_at ASC";
                                     break;
                                 case 'urgency_asc':
-                                    $sql .= " ORDER BY 
+                                    $sql2 .= " ORDER BY 
                                         CASE ti.urgency
                                             WHEN 'vysoká' THEN 1
                                             WHEN 'střední' THEN 2
@@ -373,7 +374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                         END ASC, ti.created_at DESC";
                                     break;
                                 case 'urgency_desc':
-                                    $sql .= " ORDER BY 
+                                    $sql2 .= " ORDER BY 
                                         CASE ti.urgency
                                             WHEN 'vysoká' THEN 1
                                             WHEN 'střední' THEN 2
@@ -381,17 +382,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                         END DESC, ti.created_at DESC";
                                     break;
                                 default:
-                                    $sql .= " ORDER BY ti.created_at DESC";
+                                    $sql2 .= " ORDER BY ti.created_at DESC";
                             }
 
-                            $stmt = $conn->prepare($sql);
-                            if (!empty($params)) {
-                                $stmt->bind_param($types, ...$params);
+                            $stmt2 = $conn->prepare($sql2);
+                            if (!empty($params2)) {
+                                $stmt2->bind_param($types2, ...$params2);
                             }
-                            $stmt->execute();
-                            $issues = $stmt->get_result();
+                            $stmt2->execute();
+                            $issues2 = $stmt2->get_result();
                             
-                            while ($issue = $issues->fetch_assoc()):
+                            while ($issue = $issues2->fetch_assoc()):
                             ?>
                             <tr>
                                 <td><?= $issue['id'] ?></td>
@@ -440,11 +441,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         });
     </script>
+    <?php include 'footer.php'; ?>
 </body>
 </html>
-
-<footer class="footer mt-auto py-3 bg-light">
-    <div class="container text-center">
-        <span class="text-muted">Rezervo by Kryštof Tůma 2025</span>
-    </div>
-</footer> 
