@@ -9,12 +9,11 @@ if (!is_admin()) die("Přístup odepřen");
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update_status') {
         $issue_id = intval($_POST['issue_id']);
-        $new_status = $conn->real_escape_string($_POST['new_status']);
-        $admin_note = $conn->real_escape_string($_POST['admin_note']);
+        $new_status = isset($_POST['status']) ? $conn->real_escape_string($_POST['status']) : '';
         
         // Aktualizace stavu v databázi
-        $stmt = $conn->prepare("UPDATE technical_issues SET status = ?, admin_note = ? WHERE id = ?");
-        $stmt->bind_param("ssi", $new_status, $admin_note, $issue_id);
+        $stmt = $conn->prepare("UPDATE technical_issues SET status = ? WHERE id = ?");
+        $stmt->bind_param("si", $new_status, $issue_id);
         
         if ($stmt->execute()) {
             $success_message = "Stav incidentu byl úspěšně aktualizován";

@@ -12,6 +12,12 @@ redirect_if_not_logged_in();
 $success_message = '';
 $error_message = '';
 
+// Načtení dat uživatele
+$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+
 // Zpracování formuláře pro změnu jména
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update_name') {
@@ -29,7 +35,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             if ($stmt->execute()) {
                 $_SESSION['name'] = $name;
-                $success_message = "Jméno bylo úspěšně aktualizováno";
+                
+                // Odeslání potvrzovacího emailu
+                $mail = new PHPMailer(true);
+                try {
+                    $mail_config = require 'config.php';
+                    
+                    $mail->isSMTP();
+                    $mail->Host = $mail_config['smtp']['host'];
+                    $mail->SMTPAuth = true;
+                    $mail->Username = $mail_config['smtp']['username'];
+                    $mail->Password = $mail_config['smtp']['password'];
+                    $mail->SMTPSecure = $mail_config['smtp']['encryption'];
+                    $mail->Port = $mail_config['smtp']['port'];
+                    $mail->CharSet = $mail_config['smtp']['charset'];
+                    
+                    $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
+                    $mail->addAddress($user['email']);
+                    
+                    $mail->isHTML(true);
+                    $mail->Subject = "Změna jména";
+                    $mail->Body = "
+                        <!DOCTYPE html>
+                        <html lang='cs'>
+                        <head>
+                            <meta charset='UTF-8'>
+                            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                            <title>Změna jména</title>
+                            <style>
+                                body { font-family: sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+                                .header { background-color: #f8f8f8; padding: 20px; text-align: center; border-bottom: 1px solid #eee; }
+                                .content { padding: 20px; }
+                                .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 0.9em; }
+                                .footer-title { font-weight: bold; margin-bottom: 5px; }
+                                .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class='container'>
+                                <div class='header'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/zskam.webp' alt='Logo školy' class='logo'>
+                                    <h2>Změna jména</h2>
+                                </div>
+                                <div class='content'>
+                                    <p>Vaše jméno bylo úspěšně změněno na: <strong>{$name}</strong></p>
+                                    <p>Pokud jste tuto změnu neprováděli vy, kontaktujte prosím administrátora.</p>
+                                </div>
+                                <div class='footer'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi_white.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                                    <div style='margin-top: 5px;'>By Kryštof Tůma</div>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    ";
+                    
+                    $mail->AltBody = "
+                        Změna jména
+                        ========================
+                        
+                        Vaše jméno bylo úspěšně změněno na: {$name}
+                        
+                        Pokud jste tuto změnu neprováděli vy, kontaktujte prosím administrátora.
+                        
+                        By Kryštof Tůma
+                    ";
+                    
+                    $mail->send();
+                    $success_message = "Jméno bylo úspěšně aktualizováno a odesláno potvrzení";
+                } catch (Exception $e) {
+                    $error_message = "Chyba při odesílání potvrzovacího emailu: {$mail->ErrorInfo}";
+                }
             } else {
                 $error_message = "Chyba při aktualizaci jména";
             }
@@ -46,7 +123,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->bind_param("si", $password_hash, $_SESSION['user_id']);
             
             if ($stmt->execute()) {
-                $success_message = "Heslo bylo úspěšně změněno";
+                // Odeslání potvrzovacího emailu
+                $mail = new PHPMailer(true);
+                try {
+                    $mail_config = require 'config.php';
+                    
+                    $mail->isSMTP();
+                    $mail->Host = $mail_config['smtp']['host'];
+                    $mail->SMTPAuth = true;
+                    $mail->Username = $mail_config['smtp']['username'];
+                    $mail->Password = $mail_config['smtp']['password'];
+                    $mail->SMTPSecure = $mail_config['smtp']['encryption'];
+                    $mail->Port = $mail_config['smtp']['port'];
+                    $mail->CharSet = $mail_config['smtp']['charset'];
+                    
+                    $mail->setFrom($mail_config['smtp']['from_email'], $mail_config['smtp']['from_name']);
+                    $mail->addAddress($user['email']);
+                    
+                    $mail->isHTML(true);
+                    $mail->Subject = "Změna hesla";
+                    $mail->Body = "
+                        <!DOCTYPE html>
+                        <html lang='cs'>
+                        <head>
+                            <meta charset='UTF-8'>
+                            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                            <title>Změna hesla</title>
+                            <style>
+                                body { font-family: sans-serif; line-height: 1.6; color: #333; }
+                                .container { max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+                                .header { background-color: #f8f8f8; padding: 20px; text-align: center; border-bottom: 1px solid #eee; }
+                                .content { padding: 20px; }
+                                .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 0.9em; }
+                                .footer-title { font-weight: bold; margin-bottom: 5px; }
+                                .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class='container'>
+                                <div class='header'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/zskam.webp' alt='Logo školy' class='logo'>
+                                    <h2>Změna hesla</h2>
+                                </div>
+                                <div class='content'>
+                                    <p>Vaše heslo bylo úspěšně změněno.</p>
+                                    <p>Pokud jste tuto změnu neprováděli vy, kontaktujte prosím administrátora.</p>
+                                </div>
+                                <div class='footer'>
+                                    <img src='https://zskamenicka.cz/wp-content/uploads/2025/06/logo_bezpozadi_white.webp' alt='Rezervo Logo' style='height: 40px; display: block; margin: 0 auto;'>
+                                    <div style='margin-top: 5px;'>By Kryštof Tůma</div>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    ";
+                    
+                    $mail->AltBody = "
+                        Změna hesla
+                        ========================
+                        
+                        Vaše heslo bylo úspěšně změněno.
+                        
+                        Pokud jste tuto změnu neprováděli vy, kontaktujte prosím administrátora.
+                        
+                        By Kryštof Tůma
+                    ";
+                    
+                    $mail->send();
+                    $success_message = "Heslo bylo úspěšně změněno a odesláno potvrzení";
+                } catch (Exception $e) {
+                    $error_message = "Chyba při odesílání potvrzovacího emailu: {$mail->ErrorInfo}";
+                }
             } else {
                 $error_message = "Chyba při změně hesla";
             }
@@ -154,12 +301,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 }
-
-// Načtení dat uživatele
-$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
 ?>
 <!DOCTYPE html>
 <html lang="cs">
