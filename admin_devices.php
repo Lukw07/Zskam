@@ -18,7 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
         case 'delete':
             $id = intval($_POST['id']);
-            $conn->query("DELETE FROM devices WHERE id = $id");
+            // Nejprve smažeme všechny rezervace pro toto zařízení
+            $stmt = $conn->prepare("DELETE FROM reservations WHERE device_id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            // Pak smažeme samotné zařízení
+            $stmt = $conn->prepare("DELETE FROM devices WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
             break;
             
         case 'update':
