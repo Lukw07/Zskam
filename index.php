@@ -308,22 +308,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     /* Footer */
                     .footer {
-                        background: #1f2937;
-                        color: #9ca3af;
-                        padding: 24px;
+                        padding: 1.5rem;
+                        background-color: var(--light-gray);
+                        border-bottom-left-radius: 16px;
+                        border-bottom-right-radius: 16px;
                         text-align: center;
+                        border-top: 1px solid var(--border-color);
                     }
                     
                     .footer-content {
-                        font-size: 13px;
-                        line-height: 1.5;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 0.75rem;
                     }
                     
-                    .footer-title {
-                        color: white;
-                        font-weight: 600;
-                        margin-bottom: 8px;
-                        font-size: 15px;
+                    .footer-content img {
+                        height: 30px;
+                        width: auto;
+                        object-fit: contain;
+                    }
+                    
+                    .footer-content div {
+                        color: var(--dark-gray);
+                        font-size: 0.85rem;
+                        font-weight: 500;
                     }
                     
                     .action-button {
@@ -504,258 +513,267 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #3498db;
+            --light-gray: #f0f2f5;
+            --dark-gray: #6c757d;
+            --text-color: #2c3e50;
+            --white: #ffffff;
+            --border-color: #e0e0e0;
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
             min-height: 100vh;
+            background-color: var(--light-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 1rem;
         }
-        .login-container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
+
+        .form-main-container {
+            width: 100%;
+            max-width: 550px;
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
         }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+
+        .form-switcher {
+            display: flex;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
         }
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        .card-title {
-            color: #2c3e50;
+
+        .switcher-button {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            text-decoration: none;
+            color: var(--dark-gray);
             font-weight: 600;
-            margin-bottom: 1.5rem;
-        }
-        .form-control {
             border-radius: 10px;
-            padding: 0.8rem 1rem;
-            border: 1px solid #e0e0e0;
             transition: all 0.3s ease;
+            position: relative;
         }
-        .form-control:focus {
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
-            border-color: #3498db;
+
+        .switcher-button i {
+            margin-right: 8px;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 0.8rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
+        
+        .switcher-button:not(.active):hover {
+            background-color: var(--light-gray);
         }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        
+        .switcher-button.active {
+            color: var(--primary-color);
+            background-color: #eaf5fc;
         }
-        .alert {
-            border-radius: 10px;
-            border: none;
+
+        .form-content {
+            padding: 2rem;
         }
-        .form-label {
-            font-weight: 500;
-            color: #2c3e50;
+        
+        .form-wrapper {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .form-wrapper.hidden {
+            display: none;
+        }
+
+        .form-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-align: center;
             margin-bottom: 0.5rem;
         }
-        .input-group-text {
-            border-radius: 10px;
-            background-color: #f8f9fa;
-            border: 1px solid #e0e0e0;
+
+        .form-subtitle {
+            font-size: 1rem;
+            color: var(--dark-gray);
+            text-align: center;
+            margin-bottom: 2rem;
         }
-        .form-select {
-            border-radius: 10px;
+        
+        .form-control, .form-select {
             padding: 0.8rem 1rem;
-            border: 1px solid #e0e0e0;
-        }
-        .badge {
-            padding: 0.5rem 1rem;
             border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
         }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 0.8rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .footer {
+            padding: 1rem 1.5rem;
+            background-color: var(--light-gray);
+            border-top: 1px solid var(--border-color);
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .footer-content img {
+            height: 30px;
+        }
+
+        .footer-content div {
+            font-size: 0.9rem;
+            color: var(--dark-gray);
+        }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Responzivní styly */
-        @media (max-width: 768px) {
-            .login-container {
-                margin: 1rem auto;
-                padding: 0 0.5rem;
-            }
-
-            .card {
-                margin-bottom: 1rem;
-            }
-
-            .card-body {
-                padding: 1rem;
-            }
-
-            .card-title {
-                font-size: 1.5rem;
-                margin-bottom: 1rem;
-            }
-
-            .form-control, .form-select {
-                font-size: 16px; /* Zabrání zoomování na iOS */
-                padding: 0.6rem 0.8rem;
-            }
-
-            .form-label {
-                font-size: 0.9rem;
-                margin-bottom: 0.3rem;
-            }
-
-            .btn {
-                padding: 0.6rem;
-                font-size: 0.9rem;
-            }
-
-            .alert {
-                padding: 0.75rem;
-                margin-bottom: 1rem;
-                font-size: 0.9rem;
-            }
-
-            .input-group-text {
-                font-size: 0.9rem;
-                padding: 0.6rem 0.8rem;
-            }
-
-            .badge {
-                font-size: 0.8rem;
-                padding: 0.4rem 0.6rem;
-            }
-
-            /* Úprava ikon */
-            .fas {
-                font-size: 1.2rem;
-            }
-
-            /* Úprava nadpisů */
-            h2 {
-                font-size: 1.5rem;
-                margin-bottom: 1rem;
-            }
-
-            /* Úprava textarea */
-            textarea.form-control {
-                min-height: 100px;
-            }
-
-            /* Úprava selectu pro uživatele */
-            select[name="user_id"] {
-                font-size: 16px; /* Zabrání zoomování na iOS */
-            }
         }
     </style>
 </head>
 <body>
-    <div class="login-container fade-in">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-body p-4">
-                        <h2 class="card-title text-center">
-                            <i class="fas fa-user-circle mb-3 d-block" style="font-size: 3rem; color: #3498db;"></i>
-                            Přihlášení
-                        </h2>
-                        <?php if (isset($login_error)): ?>
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                <?= $login_error ?>
-                            </div>
-                        <?php endif; ?>
-                        <form method="post">
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    <i class="fas fa-envelope me-2"></i>Email
-                                </label>
-                                <input type="email" name="email" class="form-control" required>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    <i class="fas fa-lock me-2"></i>Heslo
-                                </label>
-                                <input type="password" name="password" class="form-control" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-sign-in-alt me-2"></i>Přihlásit
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body p-4">
-                        <h2 class="card-title text-center">
-                            <i class="fas fa-exclamation-triangle mb-3 d-block" style="font-size: 3rem; color: #e74c3c;"></i>
-                            Nahlášení technického problému
-                        </h2>
-                        <?php if (isset($success_message)): ?>
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                <?= $success_message ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if (isset($error_message)): ?>
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                <?= $error_message ?>
-                            </div>
-                        <?php endif; ?>
-                        <form method="post">
-                            <input type="hidden" name="action" value="report_issue">
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    <i class="fas fa-user me-2"></i>Nahlásil
-                                </label>
-                                <select name="user_id" class="form-select" required>
-                                    <option value="">Vyberte uživatele</option>
-                                    <?php while ($user = $users->fetch_assoc()): ?>
-                                        <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['name']) ?></option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    <i class="fas fa-chalkboard me-2"></i>Třída
-                                </label>
-                                <input type="text" name="class" class="form-control" required>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    <i class="fas fa-comment-alt me-2"></i>Popis problému
-                                </label>
-                                <textarea name="description" class="form-control" rows="3" required></textarea>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    <i class="fas fa-exclamation-circle me-2"></i>Naléhavost
-                                </label>
-                                <select name="urgency" class="form-select" required>
-                                    <option value="nízká">Nízká</option>
-                                    <option value="střední">Střední</option>
-                                    <option value="vysoká">Vysoká</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-paper-plane me-2"></i>Nahlásit problém
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php
+    // Určí, který formulář má být aktivní po odeslání
+    $active_form = 'login';
+    if (isset($_POST['action']) && $_POST['action'] === 'report_issue') {
+        $active_form = 'issue';
+    }
+    ?>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <?php include 'footer.php'; ?>
+    <div class="form-main-container">
+        <div class="form-switcher">
+            <a href="#" class="switcher-button <?php if ($active_form === 'login') echo 'active'; ?>" data-form="login">
+                <i class="fas fa-user-circle"></i> Přihlášení do systému
+            </a>
+            <a href="#" class="switcher-button <?php if ($active_form === 'issue') echo 'active'; ?>" data-form="issue">
+                <i class="fas fa-exclamation-triangle"></i> Nahlásit problém
+            </a>
+        </div>
+
+        <div class="form-content">
+            <!-- Přihlašovací formulář -->
+            <form id="login-form" method="post" class="form-wrapper <?php if ($active_form !== 'login') echo 'hidden'; ?>">
+                <h2 class="form-title">Rezervační systém</h2>
+                <p class="form-subtitle">Přihlaste se ke svému účtu</p>
+
+                <?php if (isset($login_error)): ?>
+                    <div class="alert alert-danger p-2 text-center mb-3">
+                        <?= $login_error ?>
+                    </div>
+                <?php endif; ?>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Heslo</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Přihlásit</button>
+            </form>
+
+            <!-- Formulář pro nahlášení problému -->
+            <form id="issue-form" method="post" class="form-wrapper <?php if ($active_form !== 'issue') echo 'hidden'; ?>">
+                 <input type="hidden" name="action" value="report_issue">
+                <h2 class="form-title">Máte potíže?</h2>
+                <p class="form-subtitle">Dejte nám vědět, co se děje</p>
+
+                <?php if (isset($success_message)): ?>
+                    <div class="alert alert-success p-2 text-center mb-3"><?= $success_message ?></div>
+                <?php endif; ?>
+                <?php if (isset($error_message)): ?>
+                    <div class="alert alert-danger p-2 text-center mb-3"><?= $error_message ?></div>
+                <?php endif; ?>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nahlásil</label>
+                        <select name="user_id" class="form-select" required>
+                            <option value="">Vyberte uživatele</option>
+                            <?php 
+                            $users->data_seek(0);
+                            while ($user = $users->fetch_assoc()): 
+                            ?>
+                                <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['name']) ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Třída</label>
+                        <input type="text" name="class" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Popis problému</label>
+                    <textarea name="description" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Naléhavost</label>
+                    <select name="urgency" class="form-select" required>
+                        <option value="nízká">Nízká</option>
+                        <option value="střední">Střední</option>
+                        <option value="vysoká">Vysoká</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Odeslat hlášení</button>
+            </form>
+        </div>
+
+        <?php include 'footer.php'; ?>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const switcherButtons = document.querySelectorAll('.switcher-button');
+        const forms = document.querySelectorAll('.form-wrapper');
+
+        switcherButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetFormId = this.dataset.form + '-form';
+                
+                // Switch active button
+                switcherButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show target form
+                forms.forEach(form => {
+                    if (form.id === targetFormId) {
+                        form.classList.remove('hidden');
+                    } else {
+                        form.classList.add('hidden');
+                    }
+                });
+            });
+        });
+    });
+    </script>
+
 </body>
 </html>
