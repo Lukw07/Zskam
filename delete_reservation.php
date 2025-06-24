@@ -11,6 +11,41 @@ redirect_if_not_logged_in();
 // Načtení konfigurace
 $mail_config = require 'config.php';
 
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservation_ids']) && is_array($_POST['reservation_ids'])
+) {
+    $ids = array_map('intval', $_POST['reservation_ids']);
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $types = str_repeat('i', count($ids));
+    // Získání informací o všech rezervacích
+    $stmt = $conn->prepare("SELECT r.*, d.device_name, u.email, u.name, h.start_time, h.end_time FROM reservations r JOIN devices d ON r.device_id = d.id JOIN users u ON r.user_id = u.id JOIN hours h ON r.hour = h.hour_number WHERE r.id IN ($placeholders)");
+    $stmt->bind_param($types, ...$ids);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $can_delete = true;
+    $reservations = [];
+    while ($reservation = $result->fetch_assoc()) {
+        $reservations[] = $reservation;
+        if (!(is_admin() || $reservation['user_id'] == $_SESSION['user_id'])) {
+            $can_delete = false;
+        }
+    }
+    if ($can_delete && count($reservations) === count($ids)) {
+        // Smazat všechny rezervace
+        $stmt = $conn->prepare("DELETE FROM reservations WHERE id IN ($placeholders)");
+        $stmt->bind_param($types, ...$ids);
+        if ($stmt->execute()) {
+            $_SESSION['success'] = "Rezervace na celý den byla úspěšně smazána.";
+        } else {
+            $_SESSION['error'] = "Chyba při mazání rezervací.";
+        }
+    } else {
+        $_SESSION['error'] = "Nemáte oprávnění smazat jednu nebo více rezervací, nebo nebyly nalezeny.";
+    }
+    header("Location: dashboard.php");
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservation_id'])) {
     $reservation_id = intval($_POST['reservation_id']);
     

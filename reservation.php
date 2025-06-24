@@ -6,8 +6,20 @@ redirect_if_not_logged_in();
 // Nastavení časové zóny na Prahu
 date_default_timezone_set('Europe/Prague');
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $error = '';
 $success = '';
+if (isset($_SESSION['reservation_success'])) {
+    $success = $_SESSION['reservation_success'];
+    unset($_SESSION['reservation_success']);
+}
+if (isset($_SESSION['reservation_error'])) {
+    $error = $_SESSION['reservation_error'];
+    unset($_SESSION['reservation_error']);
+}
 $devices = $conn->query("SELECT * FROM devices");
 
 // Získání vybraného data a zařízení
@@ -17,50 +29,131 @@ $selected_device = isset($_GET['device_id']) ? intval($_GET['device_id']) : null
 // Získání času začátku a konce hodin
 $hours = $conn->query("SELECT * FROM hours ORDER BY hour_number");
 
+// Výpočet maximálního možného počtu kusů pro rezervaci na celý den
+$max_all_day_quantity = null;
+$all_day_unavailable = false;
+if ($selected_device && $selected_date) {
+    $hours_stmt = $conn->query("SELECT hour_number, end_time FROM hours ORDER BY hour_number");
+    $all_hours = [];
+    $current_time = new DateTime();
+    $reservation_date = new DateTime($selected_date);
+    $is_today = $reservation_date->format('Y-m-d') === $current_time->format('Y-m-d');
+    while ($h = $hours_stmt->fetch_assoc()) {
+        $hour_end = new DateTime($selected_date . ' ' . $h['end_time']);
+        if (!$is_today || $hour_end > $current_time) {
+            $all_hours[] = $h['hour_number'];
+        }
+    }
+    if (count($all_hours) === 0) {
+        $max_all_day_quantity = 0;
+        $all_day_unavailable = true;
+    } else {
+        $min_available = null;
+        foreach ($all_hours as $hour) {
+            $stmt = $conn->prepare("SELECT (SELECT total_quantity FROM devices WHERE id = ?) - COALESCE((SELECT SUM(quantity) FROM reservations WHERE device_id = ? AND date = ? AND hour = ?), 0) AS available");
+            $stmt->bind_param("iisi", $selected_device, $selected_device, $selected_date, $hour);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $available = isset($row['available']) ? (int)$row['available'] : 0;
+            if ($min_available === null || $available < $min_available) {
+                $min_available = $available;
+            }
+        }
+        $max_all_day_quantity = max(0, $min_available);
+        if ($min_available <= 0) {
+            $all_day_unavailable = true;
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $device_id = intval($_POST['device_id']);
     $date = $_POST['date'];
-    $hour = intval($_POST['hour']);
     $quantity = intval($_POST['quantity']);
+    $all_day = isset($_POST['all_day']) && $_POST['all_day'] == '1';
 
-    // Validace vstupů
-    $date_obj = DateTime::createFromFormat('Y-m-d', $date);
-    if ($date_obj === false) {
-        $error = "Neplatný formát data";
-    } else {
-        $day_of_week = $date_obj->format('N');
-        $max_date = date('Y-m-d', strtotime('+7 days'));
-
-        if ($day_of_week >= 6) {
-            $error = "Nelze rezervovat o víkendu";
-        } elseif ($date > $max_date) {
-            $error = "Maximálně 7 dní dopředu";
-        } elseif ($quantity <= 0) {
-            $error = "Neplatný počet kusů";
-        } else {
-            // Kontrola dostupnosti
-            $stmt = $conn->prepare("SELECT 
-                (SELECT total_quantity FROM devices WHERE id = ?) - 
-                COALESCE(SUM(quantity), 0) AS available
-                FROM reservations 
-                WHERE device_id = ? AND date = ? AND hour = ?");
+    if ($all_day) {
+        // Rezervace na celý den
+        $hours_stmt = $conn->query("SELECT hour_number FROM hours ORDER BY hour_number");
+        $all_hours = [];
+        while ($h = $hours_stmt->fetch_assoc()) {
+            $all_hours[] = $h['hour_number'];
+        }
+        $unavailable = [];
+        foreach ($all_hours as $hour) {
+            $stmt = $conn->prepare("SELECT (SELECT total_quantity FROM devices WHERE id = ?) - COALESCE((SELECT SUM(quantity) FROM reservations WHERE device_id = ? AND date = ? AND hour = ?), 0) AS available");
             $stmt->bind_param("iisi", $device_id, $device_id, $date, $hour);
             $stmt->execute();
-            $available = $stmt->get_result()->fetch_assoc()['available'];
-
+            $row = $stmt->get_result()->fetch_assoc();
+            $available = isset($row['available']) ? (int)$row['available'] : 0;
             if ($available < $quantity) {
-                $error = "Nedostatečný počet zařízení (dostupných: $available)";
-            } else {
-                // Vytvoření nové rezervace
-                $stmt = $conn->prepare("INSERT INTO reservations 
-                    (user_id, device_id, date, hour, quantity)
-                    VALUES (?, ?, ?, ?, ?)");
+                $unavailable[] = $hour;
+            }
+        }
+        if (count($unavailable) > 0) {
+            $_SESSION['reservation_error'] = "Nedostatečný počet zařízení v hodinách: " . implode(", ", $unavailable);
+            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+            exit();
+        } else {
+            // Vše dostupné, vytvořit rezervace pro všechny hodiny
+            foreach ($all_hours as $hour) {
+                $stmt = $conn->prepare("INSERT INTO reservations (user_id, device_id, date, hour, quantity) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
-                if ($stmt->execute()) {
-                    $success = "Rezervace úspěšně vytvořena";
-                    // Email odstraněn - uživatel nechce dostávat notifikace
+                $stmt->execute();
+            }
+            $_SESSION['reservation_success'] = "Rezervace na celý den byla úspěšně vytvořena.";
+            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+            exit();
+        }
+    } else {
+        $hour = intval($_POST['hour']);
+        // Validace vstupů
+        $date_obj = DateTime::createFromFormat('Y-m-d', $date);
+        if ($date_obj === false) {
+            $_SESSION['reservation_error'] = "Neplatný formát data";
+            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+            exit();
+        } else {
+            $day_of_week = $date_obj->format('N');
+            $max_date = date('Y-m-d', strtotime('+7 days'));
+
+            if ($day_of_week >= 6) {
+                $_SESSION['reservation_error'] = "Nelze rezervovat o víkendu";
+                header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+                exit();
+            } elseif ($date > $max_date) {
+                $_SESSION['reservation_error'] = "Maximálně 7 dní dopředu";
+                header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+                exit();
+            } elseif ($quantity <= 0) {
+                $_SESSION['reservation_error'] = "Neplatný počet kusů";
+                header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+                exit();
+            } else {
+                // Kontrola dostupnosti
+                $stmt = $conn->prepare("SELECT (SELECT total_quantity FROM devices WHERE id = ?) - COALESCE((SELECT SUM(quantity) FROM reservations WHERE device_id = ? AND date = ? AND hour = ?), 0) AS available");
+                $stmt->bind_param("iisi", $device_id, $device_id, $date, $hour);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $available = isset($row['available']) ? (int)$row['available'] : 0;
+
+                if ($available < $quantity) {
+                    $_SESSION['reservation_error'] = "Nedostatečný počet zařízení (dostupných: $available)";
+                    header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+                    exit();
                 } else {
-                    $error = "Chyba při vytváření rezervace";
+                    // Vytvoření nové rezervace
+                    $stmt = $conn->prepare("INSERT INTO reservations (user_id, device_id, date, hour, quantity) VALUES (?, ?, ?, ?, ?)");
+                    $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
+                    if ($stmt->execute()) {
+                        $_SESSION['reservation_success'] = "Rezervace úspěšně vytvořena";
+                        header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+                        exit();
+                    } else {
+                        $_SESSION['reservation_error'] = "Chyba při vytváření rezervace";
+                        header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+                        exit();
+                    }
                 }
             }
         }
@@ -311,7 +404,7 @@ $edit_reservation = null;
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Zařízení:</label>
-                        <select name="device_id" id="deviceSelect" class="form-select" required>
+                        <select name="device_id" id="deviceSelect" class="form-select" required onchange="this.form.submit()">
                             <option value="">Vyberte zařízení</option>
                             <?php while ($device = $devices->fetch_assoc()): ?>
                                 <option value="<?= $device['id'] ?>" 
@@ -322,10 +415,40 @@ $edit_reservation = null;
                             <?php endwhile; ?>
                         </select>
                     </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Zobrazit dostupnost</button>
-                    </div>
                 </form>
+                <?php if ($selected_device && $selected_date): ?>
+                    <div class="mt-3">
+                        <strong>Maximální možný počet kusů pro rezervaci na celý den:</strong>
+                        <?php if ($all_day_unavailable): ?>
+                            <span class="text-danger">Není možné rezervovat na celý den (v některé hodině není zařízení dostupné).</span>
+                        <?php else: ?>
+                            <span class="text-success"><?= $max_all_day_quantity ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <form method="post" class="mt-3" id="allday-form">
+                        <input type="hidden" name="device_id" value="<?= $selected_device ?>">
+                        <input type="hidden" name="date" value="<?= $selected_date ?>">
+                        <input type="hidden" name="all_day" value="1">
+                        <div class="mb-2">
+                            <label class="form-label">Počet kusů:</label>
+                            <input type="number" class="form-control" name="quantity" min="1" max="<?= $max_all_day_quantity ?>" value="<?= $max_all_day_quantity > 0 ? 1 : 0 ?>" <?= $all_day_unavailable ? 'disabled' : '' ?> required>
+                            <small class="text-muted">Maximální možný počet: <?= $max_all_day_quantity ?></small>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="allday-submit" <?= $all_day_unavailable ? 'disabled' : '' ?>>Rezervovat na celý den</button>
+                    </form>
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var alldayForm = document.getElementById('allday-form');
+                        if (alldayForm) {
+                            alldayForm.addEventListener('submit', function(e) {
+                                var submitBtn = document.getElementById('allday-submit');
+                                submitBtn.disabled = true;
+                                submitBtn.textContent = 'Odesílám...';
+                            });
+                        }
+                    });
+                    </script>
+                <?php endif; ?>
             </div>
         </div>
 

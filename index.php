@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $incident_id = sprintf('INC-%06d', $issue_id);
             
             // URL pro označení jako přečteno s ID incidentu
-            $mark_read_url = "http://localhost/zskam/mark_read.php?id=" . $issue_id;
+            $mark_read_url = "http://it.zskamenicka.cz/mark_read.php?id=" . $issue_id;
             
             $message = "
             <!DOCTYPE html>

@@ -94,6 +94,22 @@ redirect_if_not_logged_in();
                             d.device_name ASC";
                 
                 $reservations = $conn->query($query);
+                // Seskupení rezervací na celý den
+                $grouped = [];
+                $all_hours = [];
+                $hours_res = $conn->query("SELECT hour_number FROM hours ORDER BY hour_number");
+                while ($h = $hours_res->fetch_assoc()) {
+                    $all_hours[] = $h['hour_number'];
+                }
+                while ($row = $reservations->fetch_assoc()) {
+                    $key = $row['user_id'] . '|' . $row['device_id'] . '|' . $row['date'] . '|' . $row['quantity'];
+                    $grouped[$key]['rows'][] = $row;
+                    $grouped[$key]['device_name'] = $row['device_name'];
+                    $grouped[$key]['date'] = $row['date'];
+                    $grouped[$key]['user_name'] = $row['user_name'];
+                    $grouped[$key]['user_id'] = $row['user_id'];
+                    $grouped[$key]['quantity'] = $row['quantity'];
+                }
                 ?>
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -109,26 +125,62 @@ redirect_if_not_logged_in();
                             </tr>
                         </thead>
                         <tbody>
-                            <?php while ($row = $reservations->fetch_assoc()): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($row['device_name']) ?></td>
-                                <td><?= date('d.m.Y', strtotime($row['date'])) ?></td>
-                                <td><?= $row['hour'] ?>. hodina</td>
-                                <td><?= date('H:i', strtotime($row['start_time'])) ?> - <?= date('H:i', strtotime($row['end_time'])) ?></td>
-                                <td><?= $row['quantity'] ?></td>
-                                <td><?= htmlspecialchars($row['user_name']) ?></td>
-                                <td>
-                                    <?php if (is_admin() || $row['user_id'] == $_SESSION['user_id']): ?>
-                                    <form method="post" action="delete_reservation.php" class="d-inline">
-                                        <input type="hidden" name="reservation_id" value="<?= $row['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Opravdu chcete smazat tuto rezervaci?')">
-                                            <i class="fas fa-trash"></i> Smazat
-                                        </button>
-                                    </form>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endwhile; ?>
+                        <?php
+                        foreach ($grouped as $group) {
+                            $rows = $group['rows'];
+                            // Zjisti, jestli je to rezervace na celý den
+                            $reserved_hours = array_map(function($r) { return $r['hour']; }, $rows);
+                            sort($reserved_hours);
+                            $is_all_day = ($reserved_hours === $all_hours);
+                            if ($is_all_day) {
+                                // Sloučený řádek pro celý den
+                                $first = $rows[0];
+                                $last = $rows[count($rows)-1];
+                                echo '<tr>';
+                                echo '<td>' . htmlspecialchars($group['device_name']) . '</td>';
+                                echo '<td>' . date('d.m.Y', strtotime($group['date'])) . '</td>';
+                                echo '<td colspan="2"><span class="badge bg-primary">celý den</span></td>';
+                                echo '<td>' . $group['quantity'] . '</td>';
+                                echo '<td>' . htmlspecialchars($group['user_name']) . '</td>';
+                                echo '<td>';
+                                if (is_admin() || $group['user_id'] == $_SESSION['user_id']) {
+                                    // Smazat všechny rezervace tohoto bloku
+                                    echo '<form method="post" action="delete_reservation.php" class="d-inline">';
+                                    foreach ($rows as $r) {
+                                        echo '<input type="hidden" name="reservation_ids[]" value="' . $r['id'] . '">';
+                                    }
+                                    echo '<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm(\'Opravdu chcete smazat tuto rezervaci na celý den?\')">';
+                                    echo '<i class="fas fa-trash"></i> Smazat celý den';
+                                    echo '</button>';
+                                    echo '</form>';
+                                }
+                                echo '</td>';
+                                echo '</tr>';
+                            } else {
+                                // Obyčejné řádky po hodinách
+                                foreach ($rows as $row) {
+                                    echo '<tr>';
+                                    echo '<td>' . htmlspecialchars($row['device_name']) . '</td>';
+                                    echo '<td>' . date('d.m.Y', strtotime($row['date'])) . '</td>';
+                                    echo '<td>' . $row['hour'] . '. hodina</td>';
+                                    echo '<td>' . date('H:i', strtotime($row['start_time'])) . ' - ' . date('H:i', strtotime($row['end_time'])) . '</td>';
+                                    echo '<td>' . $row['quantity'] . '</td>';
+                                    echo '<td>' . htmlspecialchars($row['user_name']) . '</td>';
+                                    echo '<td>';
+                                    if (is_admin() || $row['user_id'] == $_SESSION['user_id']) {
+                                        echo '<form method="post" action="delete_reservation.php" class="d-inline">';
+                                        echo '<input type="hidden" name="reservation_id" value="' . $row['id'] . '">';
+                                        echo '<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm(\'Opravdu chcete smazat tuto rezervaci?\')">';
+                                        echo '<i class="fas fa-trash"></i> Smazat';
+                                        echo '</button>';
+                                        echo '</form>';
+                                    }
+                                    echo '</td>';
+                                    echo '</tr>';
+                                }
+                            }
+                        }
+                        ?>
                         </tbody>
                     </table>
                 </div>
