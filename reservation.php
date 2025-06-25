@@ -458,29 +458,25 @@ $edit_reservation = null;
                 <h3 class="card-title">2. Výběr hodiny</h3>
                 <?php
                 // Kontrola, zda všechny hodiny již proběhly
+                $hours->data_seek(0);
                 $all_hours_past = true;
                 $current_time = new DateTime();
                 $reservation_date = new DateTime($selected_date);
                 $is_today = $reservation_date->format('Y-m-d') === $current_time->format('Y-m-d');
-                
-                // Reset ukazatele pro opětovné použití
-                $hours->data_seek(0);
-                
+                $future_hours_exist = false;
                 while ($hour = $hours->fetch_assoc()) {
-                    $hour_start = new DateTime($selected_date . ' ' . $hour['start_time']);
                     $hour_end = new DateTime($selected_date . ' ' . $hour['end_time']);
-                    if (!$is_today || $hour_end < $current_time) {
+                    if (!$is_today || $hour_end > $current_time) {
                         $all_hours_past = false;
                         break;
                     }
                 }
-                
                 if ($all_hours_past && $is_today): ?>
                     <div class="alert alert-info">
-                        <h4 class="alert-heading">Dnes již není možné rezervovat</h4>
+                        <h4 class="alert-heading">Dnes již skončila možnost rezervace</h4>
                         <p>Všechny hodiny pro dnešní den již proběhly. Prosím, vyberte si jiný den pro rezervaci.</p>
                     </div>
-                <?php else: ?>
+                <?php endif; ?>
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -493,14 +489,19 @@ $edit_reservation = null;
                         </thead>
                         <tbody>
                             <?php 
-                            // Reset ukazatele pro opětovné použití
                             $hours->data_seek(0);
+                            $hour_index = 0;
+                            $next_hour_found = false;
                             while ($hour = $hours->fetch_assoc()): 
-                                // Kontrola, zda hodina již proběhla nebo právě probíhá
                                 $hour_start = new DateTime($selected_date . ' ' . $hour['start_time']);
                                 $hour_end = new DateTime($selected_date . ' ' . $hour['end_time']);
-                                $is_past = ($reservation_date < $current_time->format('Y-m-d')) || 
-                                          ($is_today && $hour_start <= $current_time);
+                                $is_past = ($reservation_date < $current_time->format('Y-m-d')) || ($is_today && $hour_end <= $current_time);
+                                $is_next = false;
+                                if (!$is_past && !$next_hour_found) {
+                                    $is_next = true;
+                                    $next_hour_found = true;
+                                }
+                                $row_class = $is_past ? 'past-hour-row' : ($is_next ? 'next-hour-row' : '');
 
                                 // Kontrola dostupnosti pro každou hodinu
                                 $stmt = $conn->prepare("SELECT 
@@ -545,38 +546,29 @@ $edit_reservation = null;
                                     $color_class = 'info';
                                 }
                             ?>
-                            <tr>
-                                <td class="align-middle"><?= $hour['hour_number'] ?>. hodina</td>
-                                <td class="align-middle"><?= date('H:i', strtotime($hour['start_time'])) ?> - <?= date('H:i', strtotime($hour['end_time'])) ?></td>
+                            <tr class="hour-row <?= $row_class ?>" style="opacity:0; transform: translateY(20px); transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1); transition-delay: <?= ($hour_index * 80) ?>ms;">
+                                <td><?= $hour['hour_number'] ?>. hodina<?php if ($is_past): ?><span class="badge badge-past-hour ms-2">proběhlo</span><?php elseif ($is_next): ?><span class="badge badge-next-hour ms-2">nadcházející hodina</span><?php endif; ?></td>
+                                <td><?= date('H:i', strtotime($hour['start_time'])) ?> - <?= date('H:i', strtotime($hour['end_time'])) ?></td>
                                 <td>
                                     <div class="d-flex align-items-center flex-wrap">
                                         <?php if ($is_past): ?>
-                                            <div class="progress flex-grow-1" style="height: 20px;">
+                                            <div class="progress flex-grow-1 animated-progress" style="height: 20px; border-radius: 12px; overflow: hidden;">
                                                 <div class="progress-bar bg-secondary"
                                                      role="progressbar"
+                                                     data-value="100"
                                                      style="width: 100%"
                                                      data-bs-toggle="tooltip"
                                                      data-bs-html="true"
-                                                     title="Tato hodina již proběhla nebo právě probíhá">
+                                                     title="Tato hodina již proběhla">
                                                      Proběhlo
                                                 </div>
                                             </div>
-                                        <?php elseif ($available == 0): ?>
-                                            <div class="progress flex-grow-1" style="height: 20px;">
-                                                <div class="progress-bar bg-danger"
-                                                     role="progressbar"
-                                                     style="width: 100%"
-                                                     data-bs-toggle="tooltip"
-                                                     data-bs-html="true"
-                                                     title="<?= $reservations ? 'Rezervace:<br>' . nl2br(htmlspecialchars($reservations)) : 'Žádné rezervace' ?>">
-                                                     <?= $available ?>/<?= $total ?>
-                                                </div>
-                                            </div>
                                         <?php else: ?>
-                                            <div class="progress flex-grow-1" style="height: 20px;">
+                                            <div class="progress flex-grow-1 animated-progress" style="height: 20px; border-radius: 12px; overflow: hidden;">
                                                 <div class="progress-bar bg-<?= $color_class ?>"
                                                      role="progressbar"
-                                                     style="width: <?= $percentage ?>%"
+                                                     data-value="<?= $percentage ?>"
+                                                     style="width: 0%"
                                                      data-bs-toggle="tooltip"
                                                      data-bs-html="true"
                                                      title="<?= $reservations ? 'Rezervace:<br>' . nl2br(htmlspecialchars($reservations)) : 'Žádné rezervace' ?>">
@@ -584,7 +576,7 @@ $edit_reservation = null;
                                                 </div>
                                             </div>
                                         <?php endif; ?>
-                                        <span class="badge bg-<?= $is_past ? 'secondary' : $color_class ?>">
+                                        <span class="badge bg-<?= $is_past ? 'secondary' : $color_class ?> ms-2">
                                             <?= $is_past ? 'Proběhlo' : $available . ' kusů' ?>
                                         </span>
                                     </div>
@@ -607,11 +599,10 @@ $edit_reservation = null;
                                     <?php endif; ?>
                                 </td>
                             </tr>
-                            <?php endwhile; ?>
+                            <?php $hour_index++; endwhile; ?>
                         </tbody>
                     </table>
                 </div>
-                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
@@ -727,6 +718,21 @@ $edit_reservation = null;
                     alert('Nelze vybrat víkend. Prosím vyberte pracovní den.');
                     this.value = '';
                 }
+            });
+
+            // Animace postupného načítání řádků hodin
+            document.querySelectorAll('.hour-row').forEach(function(row, idx) {
+                setTimeout(function() {
+                    row.style.opacity = 1;
+                    row.style.transform = 'translateY(0)';
+                }, idx * 80 + 200);
+            });
+            // Animace progress barů
+            document.querySelectorAll('.animated-progress .progress-bar').forEach(function(bar) {
+                const value = bar.getAttribute('data-value');
+                setTimeout(function() {
+                    bar.style.width = value + '%';
+                }, 400);
             });
         });
     </script>

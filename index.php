@@ -350,6 +350,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     .action-button:hover {
                         background: #2563eb;
                     }
+
+                    .fade-in {
+                        animation: fadeIn 0.5s ease-in-out;
+                    }
+
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+
+                    /* Animace alertů */
+                    .alert {
+                        opacity: 0;
+                        transform: translateY(-10px);
+                        animation: alertFadeIn 0.6s cubic-bezier(0.4,0,0.2,1) forwards;
+                    }
+                    @keyframes alertFadeIn {
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+
+                    /* Animace tlačítek */
+                    .btn, .btn-primary, .btn-danger, .btn-success {
+                        transition: transform 0.15s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s;
+                    }
+                    .btn:hover, .btn:focus {
+                        transform: translateY(-2px) scale(1.04);
+                        box-shadow: 0 6px 18px rgba(52,152,219,0.15);
+                    }
+                    .btn:active {
+                        transform: scale(0.97);
+                    }
+
+                    /* Animace našeptávače emailů */
+                    .autocomplete-suggestions {
+                        transition: opacity 0.25s, transform 0.25s;
+                        opacity: 0;
+                        transform: translateY(8px) scale(0.98);
+                        pointer-events: none;
+                    }
+                    .autocomplete-suggestions.show {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                        pointer-events: auto;
+                    }
+
+                    .table tbody td {
+                        vertical-align: middle !important;
+                    }
                 </style>
             </head>
             <body>
@@ -500,13 +551,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Získání seznamu uživatelů pro výběr
 $users = $conn->query("SELECT id, name FROM users ORDER BY name");
+
+// Získání seznamu emailů pro autocomplete
+$emails_result = $conn->query("SELECT email FROM users ORDER BY email");
+$emails = [];
+while ($row = $emails_result->fetch_assoc()) {
+    $emails[] = $row['email'];
+}
+$email_json = json_encode($emails);
 ?>
 <!DOCTYPE html>
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
     <title>Rezervo - Přihlášení</title>
     <link rel="icon" type="image/png" href="logo1.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -541,6 +599,7 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
             box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
         .form-switcher {
@@ -654,6 +713,40 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .autocomplete-suggestions {
+            position: absolute;
+            z-index: 1000;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(52,152,219,0.10);
+            max-height: 220px;
+            overflow-y: auto;
+            min-width: 250px;
+            width: auto;
+            left: 0;
+            right: 0;
+            margin-top: 2px;
+            padding: 0;
+        }
+        .suggestion-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 1rem;
+            background: #fff;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item b {
+            color: #3498db;
+            font-weight: 700;
+        }
+        .suggestion-item.selected, .suggestion-item:hover {
+            background: #eaf5fc;
+        }
+        #login-email { position: relative; z-index: 1100; }
     </style>
 </head>
 <body>
@@ -665,7 +758,7 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
     }
     ?>
 
-    <div class="form-main-container">
+    <div class="form-main-container fade-in">
         <div class="form-switcher">
             <a href="#" class="switcher-button <?php if ($active_form === 'login') echo 'active'; ?>" data-form="login">
                 <i class="fas fa-user-circle"></i> Přihlášení do systému
@@ -682,20 +775,21 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
                 <p class="form-subtitle">Přihlaste se ke svému účtu</p>
 
                 <?php if (isset($login_error)): ?>
-                    <div class="alert alert-danger p-2 text-center mb-3">
-                        <?= $login_error ?>
+                    <div class="alert alert-danger p-2 text-center mb-3 shake">
+                        <i class="fas fa-exclamation-triangle animated-icon"></i> <?= $login_error ?>
                     </div>
                 <?php endif; ?>
 
                 <div class="mb-3">
                     <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" required>
+                    <input type="email" name="email" id="login-email" class="form-control" required autocomplete="off">
                 </div>
+                <div id="email-suggestions" class="autocomplete-suggestions" style="display:none;"></div>
                 <div class="mb-4">
                     <label class="form-label">Heslo</label>
                     <input type="password" name="password" class="form-control" required>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Přihlásit</button>
+                <button type="submit" class="btn btn-primary w-100 ripple-btn">Přihlásit</button>
             </form>
 
             <!-- Formulář pro nahlášení problému -->
@@ -705,10 +799,14 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
                 <p class="form-subtitle">Dejte nám vědět, co se děje</p>
 
                 <?php if (isset($success_message)): ?>
-                    <div class="alert alert-success p-2 text-center mb-3"><?= $success_message ?></div>
+                    <div class="alert alert-success p-2 text-center mb-3 bounce">
+                        <i class="fas fa-check-circle animated-icon pulse"></i> <?= $success_message ?>
+                    </div>
                 <?php endif; ?>
                 <?php if (isset($error_message)): ?>
-                    <div class="alert alert-danger p-2 text-center mb-3"><?= $error_message ?></div>
+                    <div class="alert alert-danger p-2 text-center mb-3 shake">
+                        <i class="fas fa-exclamation-triangle animated-icon"></i> <?= $error_message ?>
+                    </div>
                 <?php endif; ?>
                 
                 <div class="row">
@@ -741,7 +839,7 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
                         <option value="vysoká">Vysoká</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Odeslat hlášení</button>
+                <button type="submit" class="btn btn-primary w-100 ripple-btn">Odeslat hlášení</button>
             </form>
         </div>
 
@@ -766,12 +864,145 @@ $users = $conn->query("SELECT id, name FROM users ORDER BY name");
                 forms.forEach(form => {
                     if (form.id === targetFormId) {
                         form.classList.remove('hidden');
+                        form.classList.add('fade-in');
+                        setTimeout(() => form.classList.remove('fade-in'), 600);
                     } else {
                         form.classList.add('hidden');
                     }
                 });
             });
         });
+    });
+
+    // --- Našeptávání emailů ---
+    const emails = <?= $email_json ?>;
+    const emailInput = document.getElementById('login-email');
+    const suggestionsBox = document.getElementById('email-suggestions');
+    const DOMAIN = '@zskamenicka.cz';
+    const MAX_SUGGESTIONS = 7;
+
+    // Paměť posledního přihlášení
+    window.addEventListener('DOMContentLoaded', function() {
+        const lastEmail = localStorage.getItem('lastEmail');
+        if (lastEmail) {
+            emailInput.value = lastEmail;
+        }
+    });
+
+    // Uložení emailu při odeslání
+    emailInput.form && emailInput.form.addEventListener('submit', function() {
+        localStorage.setItem('lastEmail', emailInput.value);
+    });
+
+    emailInput.addEventListener('input', function() {
+        let value = emailInput.value.trim();
+        let showDomain = false;
+        if (value && !value.includes('@')) {
+            showDomain = true;
+        }
+        let filtered = emails.filter(e => e.toLowerCase().includes(value.toLowerCase()));
+        if (showDomain) {
+            // Pokud uživatel píše bez domény, nabídni automaticky doplnění
+            filtered.unshift(value + DOMAIN);
+        }
+        // Unikátní a omezený počet
+        filtered = [...new Set(filtered)].slice(0, MAX_SUGGESTIONS);
+        if (filtered.length === 0 || !value) {
+            hideSuggestionsBox();
+            return;
+        }
+        suggestionsBox.innerHTML = filtered.map(email => {
+            // Zvýraznění shody
+            let regex = new RegExp('(' + value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + ')', 'i');
+            let highlighted = email.replace(regex, '<b>$1</b>');
+            return `<div class='suggestion-item'>${highlighted}</div>`;
+        }).join('');
+        showSuggestionsBox();
+        updateSuggestionsBoxWidth();
+    });
+
+    // Výběr návrhu myší nebo klávesou
+    suggestionsBox.addEventListener('mousedown', function(e) {
+        if (e.target.classList.contains('suggestion-item')) {
+            emailInput.value = e.target.textContent;
+            hideSuggestionsBox();
+            emailInput.focus();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!suggestionsBox.contains(e.target) && e.target !== emailInput) {
+            hideSuggestionsBox();
+        }
+    });
+
+    // Klávesová navigace
+    let selectedIdx = -1;
+    emailInput.addEventListener('keydown', function(e) {
+        const items = suggestionsBox.querySelectorAll('.suggestion-item');
+        if (suggestionsBox.style.display === 'block' && items.length > 0) {
+            if (e.key === 'ArrowDown') {
+                selectedIdx = (selectedIdx + 1) % items.length;
+                updateSelection(items);
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                selectedIdx = (selectedIdx - 1 + items.length) % items.length;
+                updateSelection(items);
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                if (selectedIdx >= 0) {
+                    emailInput.value = items[selectedIdx].textContent;
+                    hideSuggestionsBox();
+                    selectedIdx = -1;
+                    e.preventDefault();
+                }
+            }
+        }
+    });
+    function updateSelection(items) {
+        items.forEach((item, idx) => {
+            item.classList.toggle('selected', idx === selectedIdx);
+        });
+    }
+    emailInput.addEventListener('blur', function() {
+        setTimeout(hideSuggestionsBox, 150);
+    });
+
+    // Zarovnání šířky našeptávače podle inputu
+    function updateSuggestionsBoxWidth() {
+        const rect = emailInput.getBoundingClientRect();
+        suggestionsBox.style.width = emailInput.offsetWidth + 'px';
+        suggestionsBox.style.left = emailInput.offsetLeft + 'px';
+        suggestionsBox.style.top = (emailInput.offsetTop + emailInput.offsetHeight) + 'px';
+    }
+    window.addEventListener('resize', updateSuggestionsBoxWidth);
+    emailInput.addEventListener('focus', updateSuggestionsBoxWidth);
+
+    // Animace rozbalení našeptávače
+    function showSuggestionsBox() {
+        suggestionsBox.classList.add('show');
+        suggestionsBox.style.display = 'block';
+    }
+    function hideSuggestionsBox() {
+        suggestionsBox.classList.remove('show');
+        setTimeout(() => { suggestionsBox.style.display = 'none'; }, 200);
+    }
+
+    // Ripple efekt pro tlačítka
+    function createRipple(event) {
+        const button = event.currentTarget;
+        const circle = document.createElement('span');
+        circle.classList.add('ripple');
+        const diameter = Math.max(button.clientWidth, button.clientHeight);
+        const rect = button.getBoundingClientRect();
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${event.clientX - rect.left - diameter / 2}px`;
+        circle.style.top = `${event.clientY - rect.top - diameter / 2}px`;
+        button.appendChild(circle);
+        circle.addEventListener('animationend', () => circle.remove());
+    }
+    document.querySelectorAll('.ripple-btn').forEach(btn => {
+        btn.addEventListener('click', createRipple);
     });
     </script>
 
