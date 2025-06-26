@@ -611,7 +611,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$users = $conn->query("SELECT * FROM users");
+// Získání seznamu uživatelů s časem poslední aktivity
+$users = $conn->query("
+    SELECT u.*, 
+           GREATEST(
+               COALESCE(MAX(r.timestamp_created), '1970-01-01'),
+               COALESCE(MAX(t.created_at), '1970-01-01')
+           ) as last_activity
+    FROM users u 
+    LEFT JOIN reservations r ON r.user_id = u.id 
+    LEFT JOIN technical_issues t ON t.user_id = u.id 
+    GROUP BY u.id
+");
 ?>
 <!DOCTYPE html>
 <html lang="cs">
@@ -791,6 +802,7 @@ $users = $conn->query("SELECT * FROM users");
                         <th>Jméno</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Poslední aktivita</th>
                         <th>Akce</th>
                     </tr>
                 </thead>
@@ -812,6 +824,16 @@ $users = $conn->query("SELECT * FROM users");
                                     <option value="user" <?= $user['role'] === 'user' ? 'selected' : '' ?>>Uživatel</option>
                                     <option value="admin" <?= $user['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
                                 </select>
+                        </td>
+                        <td>
+                            <?php 
+                            if ($user['last_activity'] && $user['last_activity'] != '1970-01-01') {
+                                $last_activity = new DateTime($user['last_activity']);
+                                echo $last_activity->format('d.m.Y H:i');
+                            } else {
+                                echo '<span class="text-muted">Žádná aktivita</span>';
+                            }
+                            ?>
                         </td>
                         <td>
                                 <input type="password" name="password" class="form-control form-control-sm" placeholder="Nové heslo (volitelné)">
