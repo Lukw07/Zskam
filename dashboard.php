@@ -82,7 +82,7 @@ redirect_if_not_logged_in();
                          JOIN hours h ON r.hour = h.hour_number
                          JOIN users u ON r.user_id = u.id
                          WHERE (r.date > CURDATE() OR 
-                         (r.date = CURDATE() AND h.end_time > CURTIME()))
+                         (r.date = CURDATE() AND h.start_time > CURTIME()))
                          ORDER BY 
                             CASE 
                                 WHEN r.date = CURDATE() THEN 1

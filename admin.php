@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                         <li>Email: {$email}</li>
                                         <li>Heslo: {$password}</li>
                                     </ul>
-                                    <p>Pro přihlášení použijte tento odkaz: <a href='http://localhost/zskam/index.php'>http://localhost/zskam/index.php</a></p>
+                                    <p>Pro přihlášení použijte tento odkaz: <a href='http://it.zskamenicka.cz'>http://it.zskamenicka.cz</a></p>
                                     <p>Doporučujeme změnit si heslo po prvním přihlášení.</p>
                                 </div>
                                 <div class='footer'>
@@ -856,7 +856,7 @@ $users = $conn->query("
     <script src="auto_refresh.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            setupAutoRefresh('admin-content', 'admin.php', 60000);
+            setupAutoRefresh('admin-content', 'admin.php', 10000);
         });
     </script>
 </body>

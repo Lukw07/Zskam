@@ -72,14 +72,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quantity = intval($_POST['quantity']);
     $all_day = isset($_POST['all_day']) && $_POST['all_day'] == '1';
 
+    $current_time = new DateTime();
+    $reservation_date = DateTime::createFromFormat('Y-m-d', $date);
+    $is_today = $reservation_date && $reservation_date->format('Y-m-d') === $current_time->format('Y-m-d');
+    if ($reservation_date < new DateTime($current_time->format('Y-m-d'))) {
+        $_SESSION['reservation_error'] = "Nelze rezervovat na minulé datum.";
+        header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+        exit();
+    }
+
     if ($all_day) {
         // Rezervace na celý den
-        $hours_stmt = $conn->query("SELECT hour_number FROM hours ORDER BY hour_number");
+        $hours_stmt = $conn->query("SELECT hour_number, end_time FROM hours ORDER BY hour_number");
         $all_hours = [];
+        $unavailable = [];
         while ($h = $hours_stmt->fetch_assoc()) {
+            // Kontrola, zda hodina už proběhla (dnes)
+            if ($is_today) {
+                $hour_end = new DateTime($date . ' ' . $h['end_time']);
+                if ($hour_end <= $current_time) continue; // přeskoč proběhlé hodiny
+            }
             $all_hours[] = $h['hour_number'];
         }
-        $unavailable = [];
+        if (empty($all_hours)) {
+            $_SESSION['reservation_error'] = "Nelze rezervovat na žádnou hodinu v tento den.";
+            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+            exit();
+        }
         foreach ($all_hours as $hour) {
             $stmt = $conn->prepare("SELECT (SELECT total_quantity FROM devices WHERE id = ?) - COALESCE((SELECT SUM(quantity) FROM reservations WHERE device_id = ? AND date = ? AND hour = ?), 0) AS available");
             $stmt->bind_param("iisi", $device_id, $device_id, $date, $hour);
@@ -94,17 +113,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['reservation_error'] = "Nedostatečný počet zařízení v hodinách: " . implode(", ", $unavailable);
             header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
             exit();
-        } else {
-            // Vše dostupné, vytvořit rezervace pro všechny hodiny
-            foreach ($all_hours as $hour) {
-                $stmt = $conn->prepare("INSERT INTO reservations (user_id, device_id, date, hour, quantity) VALUES (?, ?, ?, ?, ?)");
-                $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
-                $stmt->execute();
-            }
-            $_SESSION['reservation_success'] = "Rezervace na celý den byla úspěšně vytvořena.";
-            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
-            exit();
         }
+        // Vše dostupné, vytvořit rezervace pro všechny hodiny
+        foreach ($all_hours as $hour) {
+            $stmt = $conn->prepare("INSERT INTO reservations (user_id, device_id, date, hour, quantity) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
+            $stmt->execute();
+        }
+        $_SESSION['reservation_success'] = "Rezervace na celý den byla úspěšně vytvořena.";
+        header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+        exit();
     } else {
         $hour = intval($_POST['hour']);
         // Validace vstupů
@@ -113,47 +131,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['reservation_error'] = "Neplatný formát data";
             header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
             exit();
-        } else {
-            $day_of_week = $date_obj->format('N');
-            $max_date = date('Y-m-d', strtotime('+7 days'));
+        }
+        if ($date_obj < new DateTime($current_time->format('Y-m-d'))) {
+            $_SESSION['reservation_error'] = "Nelze rezervovat na minulé datum.";
+            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+            exit();
+        }
+        // Kontrola, zda hodina už proběhla (dnes)
+        if ($is_today) {
+            $stmt = $conn->prepare("SELECT end_time FROM hours WHERE hour_number = ?");
+            $stmt->bind_param("i", $hour);
+            $stmt->execute();
+            $hour_row = $stmt->get_result()->fetch_assoc();
+            if ($hour_row) {
+                $hour_end = new DateTime($date . ' ' . $hour_row['end_time']);
+                if ($hour_end <= $current_time) {
+                    $_SESSION['reservation_error'] = "Nelze rezervovat na hodinu, která už proběhla nebo právě probíhá.";
+                    header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+                    exit();
+                }
+            }
+        }
+        $day_of_week = $date_obj->format('N');
+        $max_date = date('Y-m-d', strtotime('+7 days'));
 
-            if ($day_of_week >= 6) {
-                $_SESSION['reservation_error'] = "Nelze rezervovat o víkendu";
-                header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
-                exit();
-            } elseif ($date > $max_date) {
-                $_SESSION['reservation_error'] = "Maximálně 7 dní dopředu";
-                header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
-                exit();
-            } elseif ($quantity <= 0) {
-                $_SESSION['reservation_error'] = "Neplatný počet kusů";
+        if ($day_of_week >= 6) {
+            $_SESSION['reservation_error'] = "Nelze rezervovat o víkendu";
+            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+            exit();
+        } elseif ($date > $max_date) {
+            $_SESSION['reservation_error'] = "Maximálně 7 dní dopředu";
+            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+            exit();
+        } elseif ($quantity <= 0) {
+            $_SESSION['reservation_error'] = "Neplatný počet kusů";
+            header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+            exit();
+        } else {
+            // Kontrola dostupnosti
+            $stmt = $conn->prepare("SELECT (SELECT total_quantity FROM devices WHERE id = ?) - COALESCE((SELECT SUM(quantity) FROM reservations WHERE device_id = ? AND date = ? AND hour = ?), 0) AS available");
+            $stmt->bind_param("iisi", $device_id, $device_id, $date, $hour);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $available = isset($row['available']) ? (int)$row['available'] : 0;
+
+            if ($available < $quantity) {
+                $_SESSION['reservation_error'] = "Nedostatečný počet zařízení (dostupných: $available)";
                 header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
                 exit();
             } else {
-                // Kontrola dostupnosti
-                $stmt = $conn->prepare("SELECT (SELECT total_quantity FROM devices WHERE id = ?) - COALESCE((SELECT SUM(quantity) FROM reservations WHERE device_id = ? AND date = ? AND hour = ?), 0) AS available");
-                $stmt->bind_param("iisi", $device_id, $device_id, $date, $hour);
-                $stmt->execute();
-                $row = $stmt->get_result()->fetch_assoc();
-                $available = isset($row['available']) ? (int)$row['available'] : 0;
-
-                if ($available < $quantity) {
-                    $_SESSION['reservation_error'] = "Nedostatečný počet zařízení (dostupných: $available)";
+                // Vytvoření nové rezervace
+                $stmt = $conn->prepare("INSERT INTO reservations (user_id, device_id, date, hour, quantity) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
+                if ($stmt->execute()) {
+                    $_SESSION['reservation_success'] = "Rezervace úspěšně vytvořena";
                     header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
                     exit();
                 } else {
-                    // Vytvoření nové rezervace
-                    $stmt = $conn->prepare("INSERT INTO reservations (user_id, device_id, date, hour, quantity) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->bind_param("iisii", $_SESSION['user_id'], $device_id, $date, $hour, $quantity);
-                    if ($stmt->execute()) {
-                        $_SESSION['reservation_success'] = "Rezervace úspěšně vytvořena";
-                        header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
-                        exit();
-                    } else {
-                        $_SESSION['reservation_error'] = "Chyba při vytváření rezervace";
-                        header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
-                        exit();
-                    }
+                    $_SESSION['reservation_error'] = "Chyba při vytváření rezervace";
+                    header("Location: reservation.php?date=" . urlencode($date) . "&device_id=" . urlencode($device_id));
+                    exit();
                 }
             }
         }
@@ -386,7 +423,8 @@ $edit_reservation = null;
         <?php if ($error): ?>
             <div class="alert alert-danger"><?= $error ?></div>
         <?php elseif ($success): ?>
-            <div class="alert alert-success"><?= $success ?></div>
+            <div class="alert alert-success" id="reservation-success-alert"><?= $success ?></div>
+            <script>setTimeout(function(){ location.reload(); }, 1500);</script>
         <?php endif; ?>
 
         <div class="card mb-4">
@@ -565,10 +603,10 @@ $edit_reservation = null;
                                             </div>
                                         <?php else: ?>
                                             <div class="progress flex-grow-1 animated-progress" style="height: 20px; border-radius: 12px; overflow: hidden;">
-                                                <div class="progress-bar bg-<?= $color_class ?>"
+                                                <div class="progress-bar <?= $available == 0 ? 'bg-danger' : 'bg-' . $color_class ?>"
                                                      role="progressbar"
-                                                     data-value="<?= $percentage ?>"
-                                                     style="width: 0%"
+                                                     data-value="<?= $available == 0 ? 100 : $percentage ?>"
+                                                     style="width: <?= $available == 0 ? '100' : $percentage ?>%"
                                                      data-bs-toggle="tooltip"
                                                      data-bs-html="true"
                                                      title="<?= $reservations ? 'Rezervace:<br>' . nl2br(htmlspecialchars($reservations)) : 'Žádné rezervace' ?>">
@@ -580,6 +618,13 @@ $edit_reservation = null;
                                             <?= $is_past ? 'Proběhlo' : $available . ' kusů' ?>
                                         </span>
                                     </div>
+                                    <?php /*
+                                    if ($reservations): ?>
+                                        <div class="mt-1 small text-muted" style="white-space: pre-line;">
+                                            <strong>Rezervace:</strong><br><?= nl2br(htmlspecialchars($reservations)) ?>
+                                        </div>
+                                    <?php endif;
+                                    */ ?>
                                 </td>
                                 <td class="align-middle">
                                     <?php if ($is_past): ?>
