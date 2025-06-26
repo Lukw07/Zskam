@@ -126,7 +126,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $id = intval($_POST['id']);
             $name = $conn->real_escape_string($_POST['name']);
             $email = $conn->real_escape_string($_POST['email']);
-            $role = $_POST['role'] === 'admin' ? 'admin' : 'user';
+            // Pokud uživatel mění sám sebe, role se nemění
+            if ($id == $_SESSION['user_id']) {
+                // Získat původní roli z DB
+                $stmt = $conn->prepare("SELECT role FROM users WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $row = $result->fetch_assoc();
+                $role = $row['role'];
+            } else {
+                $role = $_POST['role'] === 'admin' ? 'admin' : 'user';
+            }
             
             // Získání původních údajů pro porovnání
             $stmt = $conn->prepare("SELECT name, email, role FROM users WHERE id = ?");
@@ -797,7 +808,7 @@ $users = $conn->query("SELECT * FROM users");
                                 <input type="email" name="email" class="form-control form-control-sm" value="<?= htmlspecialchars($user['email']) ?>" required>
                         </td>
                         <td>
-                                <select name="role" class="form-select form-select-sm">
+                                <select name="role" class="form-select form-select-sm"<?= $user['id'] == $_SESSION['user_id'] ? ' disabled' : '' ?>>
                                     <option value="user" <?= $user['role'] === 'user' ? 'selected' : '' ?>>Uživatel</option>
                                     <option value="admin" <?= $user['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
                                 </select>
