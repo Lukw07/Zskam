@@ -533,7 +533,7 @@ $edit_reservation = null;
                             while ($hour = $hours->fetch_assoc()): 
                                 $hour_start = new DateTime($selected_date . ' ' . $hour['start_time']);
                                 $hour_end = new DateTime($selected_date . ' ' . $hour['end_time']);
-                                $is_past = ($reservation_date < $current_time->format('Y-m-d')) || ($is_today && $hour_end <= $current_time);
+                                $is_past = ($reservation_date < $current_time->format('Y-m-d')) || ($is_today && $hour_start <= $current_time);
                                 $is_next = false;
                                 if (!$is_past && !$next_hour_found) {
                                     $is_next = true;
